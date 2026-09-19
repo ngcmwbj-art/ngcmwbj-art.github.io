@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>世界のうしニュース 投稿ツール — プライバシーポリシー・利用規約</title>
+<style>
+  body { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; max-width: 760px; margin: 40px auto; padding: 0 20px; line-height: 1.8; color: #222; }
+  h1 { font-size: 1.5em; border-bottom: 2px solid #e5e5e5; padding-bottom: 8px; }
+  h2 { font-size: 1.15em; margin-top: 2em; }
+  h3 { font-size: 1em; margin-top: 1.4em; }
+  code { background: #f4f4f4; padding: 1px 5px; border-radius: 3px; }
+  .meta { color: #666; font-size: 0.9em; }
+  table { border-collapse: collapse; margin: 1em 0; }
+  td, th { border: 1px solid #ddd; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #fafafa; }
+</style>
+</head>
+<body>
+
+<h1>世界のうしニュース 投稿ツール</h1>
+<p class="meta">最終更新: 2026年9月19日</p>
+
+<p>このページは、YouTubeチャンネルおよびTikTokアカウント「世界のうしニュース」の運営者（以下「提供者」）が、
+自分で制作した動画を自分のアカウントへ投稿するために使っている個人用ツール（以下「本ツール」）の
+プライバシーポリシーと利用規約です。</p>
+
+<h2 id="privacy">プライバシーポリシー</h2>
+
+<h3>1. 本ツールの性質</h3>
+<p>本ツールは提供者本人だけが使う投稿用のプログラムです。第三者に配布・公開しておらず、
+提供者以外のユーザーは存在しません。本ツールが扱う動画は、すべて提供者自身が制作したものです。</p>
+
+<h3>2. 取得する情報</h3>
+<p>本ツールは、提供者自身のアカウントに対して、次のAPIを通じて情報を取得・利用します。</p>
+
+<table>
+<tr><th>サービス</th><th>利用する範囲（スコープ）</th><th>目的</th></tr>
+<tr><td>YouTube Data API / YouTube Analytics API</td>
+    <td><code>youtube.upload</code>, <code>youtube.force-ssl</code>, <code>youtube.readonly</code>, <code>yt-analytics.readonly</code></td>
+    <td>提供者のチャンネルへ動画を投稿し、題名・説明を編集し、再生数と視聴維持率を確認する</td></tr>
+<tr><td>TikTok Login Kit</td>
+    <td><code>user.info.basic</code></td>
+    <td>提供者自身のアカウントを識別する（open id・表示名・アバター）</td></tr>
+<tr><td>TikTok Content Posting API</td>
+    <td><code>video.upload</code>（将来 <code>video.publish</code>）</td>
+    <td>提供者が制作した動画を、提供者自身のTikTokアカウントへ下書きとして送る（将来は直接投稿する）</td></tr>
+</table>
+
+<p>本ツールは、他のユーザーの情報・連絡先・視聴履歴などを取得しません。</p>
+
+<h3>3. 保存する情報と保管場所</h3>
+<p>本ツールが保存するのは、上記APIの認証用トークン（リフレッシュトークン）のみです。
+これらは提供者個人のパソコン内のファイルにだけ保存し、本人以外が読めないようアクセス権限を制限しています。
+アクセストークンは保存せず、必要なときにその場で取得して破棄します。</p>
+<p>トークンおよび取得した情報を、外部のサーバーへ送信・保管することはありません。第三者へ提供・販売することもありません。</p>
+
+<h3>4. AIの利用について</h3>
+<p>「世界のうしニュース」の動画は、公開されているニュースを提供者が選び、台本・ナレーション・画面をAIと自作のプログラムで制作しています。
+TikTokへ投稿する際は、AI生成コンテンツであることを適切に表示します。</p>
+
+<h3>5. データの削除</h3>
+<p>提供者は、Google アカウントのセキュリティ設定、および TikTok アプリの「設定とプライバシー › セキュリティ › 連携済みアプリ」から、
+いつでも本ツールの連携を解除できます。解除後、本ツールが保存しているトークンは無効になり、提供者が手動で削除します。</p>
+
+<h3>6. 変更</h3>
+<p>このポリシーを変更するときは、このページを更新します。</p>
+
+<h2 id="terms">利用規約</h2>
+<ol>
+<li>本ツールは提供者本人の利用に限ります。第三者への提供・貸与・再配布は行いません。</li>
+<li>本ツールで投稿する動画は、すべて提供者が制作したものです。他者の著作物を無断で投稿することはありません。</li>
+<li>本ツールは、YouTube および TikTok の各利用規約・開発者規約・コミュニティガイドラインに従って運用します。</li>
+<li>本ツールの利用により生じた結果について、提供者自身が責任を負います。</li>
+</ol>
+
+<h2 id="contact">お問い合わせ</h2>
+<p>本ツールおよびこのページに関するお問い合わせは、YouTubeチャンネル「世界のうしニュース」のコメント欄までお願いします。</p>
+
+</body>
+</html>
