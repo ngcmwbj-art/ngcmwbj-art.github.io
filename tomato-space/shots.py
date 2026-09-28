@@ -6,7 +6,20 @@ import os, subprocess, sys, shutil
 HERE = os.path.dirname(os.path.abspath(__file__))
 HTML = os.path.join(HERE, 'トマト宇宙農園.html')
 OUT  = os.path.join(HERE, 'shots')
-CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+def _find_chrome():
+    """Chrome の場所。環境変数 TSF_CHROME があればそれを使う"""
+    cands = [os.environ.get('TSF_CHROME',''),
+             '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+             '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+             shutil.which('google-chrome') or '', shutil.which('chromium') or '']
+    for c in cands:
+        if c and os.path.exists(c): return c
+    return cands[1]
+CHROME = _find_chrome()
+# 3D表示（WebGL）をGPUなしでも描けるように
+GL_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
+if hasattr(os, 'geteuid') and os.geteuid() == 0:
+    GL_ARGS.append('--no-sandbox')   # root で動かすとき（コンテナなど）
 
 SCENES = {
  'title': "",
@@ -180,7 +193,7 @@ setTimeout(function(){
         fp.write(html)
     png = os.path.join(OUT, '%s.png' % name)
     if os.path.exists(png): os.remove(png)
-    cmd = [CHROME, '--headless=new', '--disable-gpu', '--hide-scrollbars',
+    cmd = [CHROME, '--headless=new', '--hide-scrollbars'] + GL_ARGS + [
            '--force-device-scale-factor=1',
            '--window-size=1400,880',
            '--virtual-time-budget=2600',

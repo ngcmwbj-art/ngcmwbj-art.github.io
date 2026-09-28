@@ -76,27 +76,40 @@ function bindInput(cv){
     const handle = (e, down)=>{
       e.preventDefault(); audioResume();
       Game.pad.x=0; Game.pad.y=0;
-      if (!down){ Game.padAct=false; return; }
+      let act=false, can=false, bag=false, nxt=false;
       const r = cv.getBoundingClientRect();
-      for (let i=0;i<e.touches.length;i++){
-        const t = e.touches[i];
+      const touches = down? e.touches : [];
+      for (let i=0;i<touches.length;i++){
+        const t = touches[i];
         const fx = (t.clientX-r.left)/r.width, fy=(t.clientY-r.top)/r.height;
-        if (fx < 0.34 && fy > 0.52){
-          /* 左下＝十字 */
+        const TR = Game.touchRects;
+        const inR = (q)=> q && fx>=q[0] && fx<=q[2] && fy>=q[1] && fy<=q[3];
+        /* A・B は丸いボタンの近いほう */
+        const dA = Math.hypot((fx-0.86)*r.width, (fy-0.86)*r.height);
+        const dB = Math.hypot((fx-0.76)*r.width, (fy-0.68)*r.height);
+        const rad = Math.min(r.width, r.height)*0.16;
+        if (TR && inR(TR.bag)) bag = true;
+        else if (TR && inR(TR.next)) nxt = true;
+        else if (fx < 0.34 && fy > 0.52){
+          /* 左下＝スライドパッド */
           const cx=0.17, cy=0.78;
-          const dx=fx-cx, dy=fy-cy;
-          if (Math.abs(dx)>Math.abs(dy)) Game.pad.x = dx>0?1:-1;
-          else Game.pad.y = dy>0?1:-1;
-        } else if (fx > 0.70 && fy > 0.58){
-          if (fy > 0.80 || fx < 0.85){ if(!Game.padActPrev) Game.pressed['act']=true; Game.padAct=true; }
-          else { if(!Game.padCanPrev) Game.pressed['cancel']=true; }
-        } else if (fy < 0.16 && fx > 0.85){
-          if (!Game.padBagPrev) Game.pressed['bag']=true;
-        } else if (fy < 0.16 && fx > 0.70){
-          if (!Game.padNxtPrev) Game.pressed['next']=true;
-        }
+          const dx=(fx-cx)*r.width, dy=(fy-cy)*r.height;
+          if (Math.hypot(dx,dy) > rad*0.18){
+            if (Math.abs(dx)>Math.abs(dy)) Game.pad.x = dx>0?1:-1;
+            else Game.pad.y = dy>0?1:-1;
+          }
+        } else if (Math.min(dA,dB) < rad || (fx > 0.62 && fy > 0.52)){
+          if (dA <= dB) act = true; else can = true;
+        } else if (!TR && fy < 0.16 && fx > 0.85) bag = true;
+        else if (!TR && fy < 0.16 && fx > 0.70) nxt = true;
       }
-      Game.padActPrev = Game.padAct;
+      /* 押した瞬間だけ「押された」にする（指を置いたままでは繰り返さない） */
+      if (act && !Game.padActPrev) Game.pressed['act']=true;
+      if (can && !Game.padCanPrev) Game.pressed['cancel']=true;
+      if (bag && !Game.padBagPrev) Game.pressed['bag']=true;
+      if (nxt && !Game.padNxtPrev) Game.pressed['next']=true;
+      Game.padAct = act;
+      Game.padActPrev = act; Game.padCanPrev = can; Game.padBagPrev = bag; Game.padNxtPrev = nxt;
     };
     cv.addEventListener('touchstart', e=>handle(e,true), {passive:false});
     cv.addEventListener('touchmove',  e=>handle(e,true), {passive:false});

@@ -30,7 +30,17 @@ def main():
 
     with open(os.path.join(HERE, 'shell.html'), encoding='utf-8') as fp:
         shell = fp.read()
-    html = shell.replace('/*__BUNDLE__*/', bundle)
+    three_path = os.path.join(HERE, 'vendor', 'three.min.js')
+    three = ''
+    if os.path.exists(three_path):
+        with open(three_path, encoding='utf-8') as fp:
+            three = fp.read()
+        if '</script' in three.lower():
+            print('！ three.min.js に </script が含まれています。中断します。')
+            return 1
+    else:
+        print('（vendor/three.min.js が無いので、2D表示だけで作ります）')
+    html = shell.replace('/*__THREE__*/', three).replace('/*__BUNDLE__*/', bundle)
     with open(OUT_HTML, 'w', encoding='utf-8') as fp:
         fp.write(html)
 

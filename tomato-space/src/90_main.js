@@ -185,9 +185,15 @@ function loop(ts){
   } else {
     tickClock(dt);
     updatePlay(dt);
-    drawWorld();
-    c.clearRect(0,0,R.W,R.H);
-    c.drawImage(R.world, 0,0, R.W, R.H);
+    if (W3.on){
+      w3Frame(dt);
+      c.clearRect(0,0,R.W,R.H);
+      drawOverlay3D();
+    } else {
+      drawWorld();
+      c.clearRect(0,0,R.W,R.H);
+      c.drawImage(R.world, 0,0, R.W, R.H);
+    }
     drawHUD();
     for (const u of Game.ui) if (u.draw) u.draw(c);
   }
@@ -196,9 +202,35 @@ function loop(ts){
   requestAnimationFrame(loop);
 }
 
+/* 3D表示のうえに重ねる、画面全体の効果（砂嵐・フレア・停電と、四隅のかげり） */
+function drawOverlay3D(){
+  const c = R.c, a = areaOf(S.area);
+  if (a && a.sky){
+    const w = S.weather;
+    if (w==='dust' || w==='flare' || w==='outage'){
+      R.wc.clearRect(0,0,VW,VH);
+      drawWeather(R.wc, 0, 0, a);
+      c.save(); c.imageSmoothingEnabled = true;
+      c.drawImage(R.world, 0,0, R.W, R.H);
+      c.restore();
+    } else if (w==='meteor'){
+      c.fillStyle='rgba(60,40,70,0.12)'; c.fillRect(0,0,R.W,R.H);
+    }
+  }
+  if (!Game._vig || Game._vigW!==R.W || Game._vigH!==R.H){
+    const cv = mkCv(R.W, R.H), g = cv.getContext('2d');
+    const rg = g.createRadialGradient(R.W/2,R.H*0.48,Math.min(R.W,R.H)*0.35,R.W/2,R.H/2,Math.max(R.W,R.H)*0.75);
+    rg.addColorStop(0,'rgba(0,0,0,0)'); rg.addColorStop(1,'rgba(6,8,24,0.42)');
+    g.fillStyle=rg; g.fillRect(0,0,R.W,R.H);
+    Game._vig = cv; Game._vigW=R.W; Game._vigH=R.H;
+  }
+  c.drawImage(Game._vig,0,0);
+}
+
 function boot(){
   const cv = document.getElementById('game');
   bakeTiles();
+  if (w3Init() && document.body) document.body.classList.add('is3d');
   initRender(cv);
   bindInput(cv);
   /* 仮の状態（タイトル画面でも季節などを参照するため） */
@@ -224,4 +256,15 @@ window.TSF = {
   openQuests:openQuests, openCalendar:openCalendar, openHelp:openHelp, openGravity:openGravity,
   dialogSeq:dialogSeq, showMorning:showMorning, enterMine:enterMine, uiClear:uiClear,
   cropStage:cropStage, musicStop:musicStop,
+  W3:W3,
+  /* 立体の画面と文字の画面を重ねた1枚の絵（自動プレイの記録用） */
+  snapshot:function(){
+    if (!W3.on) return document.getElementById('game').toDataURL('image/png');
+    if (Game.mode==='play') W3.renderer.render(W3.scene, W3.camera);
+    else W3.renderer.render(W3.tScene, W3.tCam);
+    const out = mkCv(R.W, R.H), g = out.getContext('2d');
+    g.drawImage(W3.cv, 0, 0, R.W, R.H);
+    g.drawImage(R.cv, 0, 0);
+    return out.toDataURL('image/png');
+  },
 };
