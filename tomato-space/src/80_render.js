@@ -359,6 +359,7 @@ function drawHUD(){
   for (let i=0;i<10;i++){
     const sl = S.inv[i], sel = i===S.hand;
     const x = tx0+i*cell + 1*s, y = ty0 + 1*s - (sel? 2*s : 0), w = cell-2*s;
+    tapZone(null, tx0+i*cell, ty0-3*s, cell, cell+6*s, ()=>{ S.hand=i; SFX.menu(); });
     if (sel){
       selBox(c, x, y, w, w, 4*s);
     } else {
@@ -603,6 +604,7 @@ function drawTitle(){
   for (let i=0;i<opts.length;i++){
     const sel = i===(Game.titleSel||0);
     const x=(W-bw)/2 + (sel? 0 : 0), y=my+i*(bh+gap);
+    tapZone(null, x-4*s, y-2*s, bw+8*s, bh+4*s, ()=>{ Game.titleSel=i; Game.pressed.act=true; });
     if (sel) selBox(c,x-3*s,y-1*s,bw+6*s,bh+2*s,(bh+2*s)/2);
     else card(c,x,y,bw,bh,bh/2);
     txt(c, opts[i], W/2, y+4.2*s, 9.5*s, sel? COL.blue : COL.text, 'center', true);

@@ -78,9 +78,21 @@ function bindInput(cv){
       Game.pad.x=0; Game.pad.y=0;
       let act=false, can=false, bag=false, nxt=false;
       const r = cv.getBoundingClientRect();
+      Game.tapIds = Game.tapIds || {};
+      /* 押しはじめた指が、メニューの項目などの上なら、そちらを押したことにする */
+      if (e.type==='touchstart'){
+        for (let i=0;i<e.changedTouches.length;i++){
+          const t = e.changedTouches[i];
+          if (tapAt((t.clientX-r.left)/r.width, (t.clientY-r.top)/r.height)) Game.tapIds[t.identifier]=1;
+        }
+      }
+      if (e.type==='touchend' || e.type==='touchcancel'){
+        for (let i=0;i<e.changedTouches.length;i++) delete Game.tapIds[e.changedTouches[i].identifier];
+      }
       const touches = down? e.touches : [];
       for (let i=0;i<touches.length;i++){
         const t = touches[i];
+        if (Game.tapIds[t.identifier]) continue;
         const fx = (t.clientX-r.left)/r.width, fy=(t.clientY-r.top)/r.height;
         const TR = Game.touchRects;
         const inR = (q)=> q && fx>=q[0] && fx<=q[2] && fy>=q[1] && fy<=q[3];
@@ -94,9 +106,11 @@ function bindInput(cv){
           /* 左下＝スライドパッド */
           const cx=0.17, cy=0.78;
           const dx=(fx-cx)*r.width, dy=(fy-cy)*r.height;
-          if (Math.hypot(dx,dy) > rad*0.18){
-            if (Math.abs(dx)>Math.abs(dy)) Game.pad.x = dx>0?1:-1;
-            else Game.pad.y = dy>0?1:-1;
+          const d = Math.hypot(dx,dy);
+          if (d > rad*0.15){
+            /* ななめにも歩ける */
+            if (Math.abs(dx) > d*0.38) Game.pad.x = dx>0?1:-1;
+            if (Math.abs(dy) > d*0.38) Game.pad.y = dy>0?1:-1;
           }
         } else if (Math.min(dA,dB) < rad || (fx > 0.62 && fy > 0.52)){
           if (dA <= dB) act = true; else can = true;
@@ -116,7 +130,26 @@ function bindInput(cv){
     cv.addEventListener('touchend',   e=>handle(e,false), {passive:false});
     cv.addEventListener('touchcancel',e=>handle(e,false), {passive:false});
   }
-  cv.addEventListener('mousedown', ()=>audioResume());
+  /* マウスでもメニューを押せる */
+  cv.addEventListener('mousedown', e=>{
+    audioResume();
+    const r = cv.getBoundingClientRect();
+    tapAt((e.clientX-r.left)/r.width, (e.clientY-r.top)/r.height);
+  });
+}
+/* 画面上の位置（0〜1）に押せる場所があれば押す */
+function tapAt(fx, fy){
+  const L = Game.tapHits; if (!L || !L.length) return false;
+  const x = fx*R.W, y = fy*R.H;
+  for (let i=L.length-1;i>=0;i--){
+    const z = L[i];
+    if (x>=z.x && x<=z.x+z.w && y>=z.y && y<=z.y+z.h){
+      audioResume();
+      z.fn();
+      return true;
+    }
+  }
+  return false;
 }
 function pressed(k){ return !!Game.pressed[k]; }
 function held(k){
