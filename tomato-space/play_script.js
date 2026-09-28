@@ -23,7 +23,7 @@ function box(){
 }
 function snap(n){
   try {
-    var d = document.getElementById('game').toDataURL('image/png');
+    var d = T.snapshot ? T.snapshot() : document.getElementById('game').toDataURL('image/png');
     shots.push({ n:n, d:d });
     var e = document.createElement('i');
     e.setAttribute('data-n', n); e.textContent = d;

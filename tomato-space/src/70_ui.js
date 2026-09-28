@@ -34,36 +34,163 @@ function rr(c,x,y,w,h,r){
   c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
   c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath();
 }
-function panel(c,x,y,w,h,title,accent){
-  const s = R.s;
+/* ---------------------------------------------------------------- 3DS風の色 */
+/* 白いパネルの上で読めるように、明るい文字色を濃くする（もとの色味は残す） */
+let UI_DARK = false;           // true のあいだは暗い背景の上に書く（色をそのまま使う）
+const _inkCache = {};
+function _parseCol(col){
+  col = String(col).trim();
+  let r,g,b,a=1;
+  if (col[0]==='#'){
+    if (col.length===4){ r=parseInt(col[1]+col[1],16); g=parseInt(col[2]+col[2],16); b=parseInt(col[3]+col[3],16); }
+    else { r=parseInt(col.slice(1,3),16); g=parseInt(col.slice(3,5),16); b=parseInt(col.slice(5,7),16); }
+  } else {
+    const m = col.match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    const p = m[1].split(',').map(Number);
+    r=p[0]; g=p[1]; b=p[2]; a = p.length>3? p[3] : 1;
+  }
+  return [r,g,b,a];
+}
+function _rgb2hsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+  let h=0, s2=0; const l=(mx+mn)/2;
+  if (mx!==mn){
+    const d=mx-mn;
+    s2 = l>0.5? d/(2-mx-mn) : d/(mx+mn);
+    if (mx===r) h=(g-b)/d+(g<b?6:0); else if (mx===g) h=(b-r)/d+2; else h=(r-g)/d+4;
+    h/=6;
+  }
+  return [h,s2,l];
+}
+function _hsl(h,s2,l,a){
+  return 'hsla('+Math.round(h*360)+','+Math.round(s2*100)+'%,'+Math.round(l*100)+'%,'+(a==null?1:a)+')';
+}
+function inkCol(col){
+  if (_inkCache[col]) return _inkCache[col];
+  const p = _parseCol(col);
+  let out = col;
+  if (p){
+    const [h,sa,l] = _rgb2hsl(p[0],p[1],p[2]);
+    const a = Math.max(p[3], 0.8);
+    if (col===COL.text) out = '#2b3246';
+    else if (col===COL.dim) out = '#6a7389';
+    else if (sa<0.5 && l>0.6) out = _hsl(h, Math.min(sa,0.22), 0.26+(1-l)*0.45, a);
+    else if (l>0.45) out = _hsl(h, Math.min(sa,0.78), 0.42, a);
+    else out = _hsl(h, sa, l, a);
+  }
+  _inkCache[col] = out;
+  return out;
+}
+/* 見出しの帯の色（アクセントを少し濃く・鮮やかに） */
+function accentMid(col, l){
+  const p = _parseCol(col||COL.blue); if (!p) return col;
+  const [h,sa] = _rgb2hsl(p[0],p[1],p[2]);
+  return _hsl(h, Math.min(0.85, Math.max(0.45,sa)), l==null? 0.55 : l, 1);
+}
+/* うすい斜線の地模様 */
+function _stripePat(c){
+  if (!Game._stripe){
+    const cv = mkCv(12,12), g = cv.getContext('2d');
+    g.strokeStyle='rgba(120,150,190,0.10)'; g.lineWidth=3;
+    g.beginPath(); g.moveTo(-3,15); g.lineTo(15,-3); g.stroke();
+    g.beginPath(); g.moveTo(9,15); g.lineTo(15,9); g.stroke();
+    g.beginPath(); g.moveTo(-3,3); g.lineTo(3,-3); g.stroke();
+    Game._stripe = cv;
+  }
+  return c.createPattern(Game._stripe,'repeat');
+}
+
+/* 白くてつやのある板（HUDの部品） */
+function card(c,x,y,w,h,r,opt){
+  const s = R.s; opt = opt||{};
   c.save();
-  c.shadowColor='rgba(0,0,0,0.55)'; c.shadowBlur=12*s; c.shadowOffsetY=4*s;
-  c.fillStyle='rgba(14,20,36,0.94)';
-  rr(c,x,y,w,h,5*s); c.fill();
+  c.shadowColor='rgba(16,24,48,0.35)'; c.shadowBlur=8*s; c.shadowOffsetY=2*s;
+  const g = c.createLinearGradient(0,y,0,y+h);
+  g.addColorStop(0, opt.top||'rgba(255,255,255,0.97)'); g.addColorStop(1, opt.bot||'rgba(232,238,247,0.97)');
+  c.fillStyle=g; rr(c,x,y,w,h,r); c.fill();
   c.shadowColor='transparent';
-  /* 枠 */
-  c.strokeStyle=accent||COL.line; c.lineWidth=Math.max(1,1*s);
-  rr(c,x+0.5,y+0.5,w-1,h-1,5*s); c.stroke();
-  c.strokeStyle='rgba(255,255,255,0.08)'; c.lineWidth=1;
-  rr(c,x+2*s,y+2*s,w-4*s,h-4*s,4*s); c.stroke();
-  /* 見出し */
+  c.lineWidth=Math.max(1,0.8*s); c.strokeStyle=opt.line||'rgba(255,255,255,0.95)';
+  rr(c,x+0.5,y+0.5,w-1,h-1,r); c.stroke();
+  c.strokeStyle='rgba(150,170,200,0.35)'; c.lineWidth=1;
+  rr(c,x+1.5*s,y+1.5*s,w-3*s,h-3*s,Math.max(1,r-1.5*s)); c.stroke();
+  c.restore();
+}
+function panel(c,x,y,w,h,title,accent){
+  const s = R.s, r = 7*s;
+  const ac = accent||COL.line;
+  c.save();
+  /* 影 */
+  c.shadowColor='rgba(10,18,40,0.45)'; c.shadowBlur=16*s; c.shadowOffsetY=5*s;
+  const g = c.createLinearGradient(0,y,0,y+h);
+  g.addColorStop(0,'#ffffff'); g.addColorStop(1,'#e6ecf5');
+  c.fillStyle=g; rr(c,x,y,w,h,r); c.fill();
+  c.shadowColor='transparent';
+  /* 地模様 */
+  c.save(); rr(c,x,y,w,h,r); c.clip();
+  c.fillStyle=_stripePat(c); c.fillRect(x,y,w,h);
+  /* 見出しの帯 */
   if (title){
-    c.fillStyle='rgba(40,56,96,0.85)';
-    rr(c,x+2*s,y+2*s,w-4*s,13*s,3*s); c.fill();
-    c.fillStyle=accent||COL.blue;
+    const hh = 14*s;
+    const hg = c.createLinearGradient(0,y,0,y+hh);
+    hg.addColorStop(0, accentMid(ac,0.64)); hg.addColorStop(1, accentMid(ac,0.5));
+    c.fillStyle=hg; c.fillRect(x,y,w,hh);
+    c.fillStyle='rgba(255,255,255,0.35)'; c.fillRect(x,y,w,hh*0.45);
+    c.fillStyle='rgba(0,0,0,0.12)'; c.fillRect(x,y+hh-1*s,w,1*s);
+  }
+  c.restore();
+  /* 枠 */
+  c.lineWidth=Math.max(1,1.6*s); c.strokeStyle=accentMid(ac,0.72);
+  rr(c,x+0.8*s,y+0.8*s,w-1.6*s,h-1.6*s,r); c.stroke();
+  c.lineWidth=1; c.strokeStyle='rgba(255,255,255,0.9)';
+  rr(c,x+2.2*s,y+2.2*s,w-4.4*s,h-4.4*s,r-2*s); c.stroke();
+  if (title){
     c.font='bold '+(8.5*s)+'px '+UI_FONT;
     c.textAlign='left'; c.textBaseline='middle';
-    c.fillText(title, x+7*s, y+9*s);
+    c.fillStyle='rgba(0,0,0,0.25)'; c.fillText(title, x+8*s, y+7.6*s);
+    c.fillStyle='#ffffff'; c.fillText(title, x+7.5*s, y+7*s);
   }
+  c.restore();
+}
+/* 選ばれている行（水色に光る帯。3DSのカーソル） */
+function selBox(c,x,y,w,h,r){
+  const s=R.s;
+  const p = 0.5+0.5*Math.sin(Game.time*5);
+  c.save();
+  c.shadowColor='rgba(40,170,240,'+(0.35+p*0.35).toFixed(2)+')'; c.shadowBlur=(4+p*4)*s;
+  const g=c.createLinearGradient(0,y,0,y+h);
+  g.addColorStop(0,'#f2fbff'); g.addColorStop(1,'#c8ecff');
+  c.fillStyle=g; rr(c,x,y,w,h,r||3*s); c.fill();
+  c.shadowColor='transparent';
+  c.lineWidth=Math.max(1.5,1.4*s); c.strokeStyle='hsl(199,85%,'+Math.round(52+p*8)+'%)';
+  rr(c,x+0.5,y+0.5,w-1,h-1,r||3*s); c.stroke();
+  c.restore();
+}
+/* 丸いボタンの記号（A・B など） */
+function btnGlyph(c,label,x,y,r,col){
+  c.save();
+  const g=c.createRadialGradient(x-r*0.35,y-r*0.4,r*0.1,x,y,r);
+  g.addColorStop(0,'#ffffff'); g.addColorStop(0.25,col); g.addColorStop(1,shade(col,-35));
+  c.fillStyle=g; c.beginPath(); c.arc(x,y,r,0,6.2832); c.fill();
+  c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(1,r*0.12); c.stroke();
+  c.fillStyle='#ffffff'; c.font='bold '+(r*1.25)+'px '+UI_FONT; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(label,x,y+r*0.06);
   c.restore();
 }
 function txt(c,str,x,y,size,color,align,bold){
   c.save();
   c.font=(bold?'bold ':'')+(size)+'px '+UI_FONT;
   c.textAlign=align||'left'; c.textBaseline='top';
-  c.fillStyle='rgba(0,0,0,0.55)';
-  c.fillText(str,x+Math.max(1,size*0.06),y+Math.max(1,size*0.07));
-  c.fillStyle=color||COL.text;
+  if (UI_DARK){
+    c.fillStyle='rgba(0,0,0,0.55)';
+    c.fillText(str,x+Math.max(1,size*0.06),y+Math.max(1,size*0.07));
+    c.fillStyle=color||'#ffffff';
+  } else {
+    c.fillStyle='rgba(255,255,255,0.75)';
+    c.fillText(str,x,y+Math.max(1,size*0.08));
+    c.fillStyle=inkCol(color||COL.text);
+  }
   c.fillText(str,x,y);
   c.restore();
 }
@@ -73,13 +200,18 @@ function txtLines(c,str,x,y,size,color,lh,align){
   return ls.length*(lh||size*1.35);
 }
 function bar(c,x,y,w,h,v,max,col,bg){
-  c.fillStyle=bg||'rgba(0,0,0,0.5)'; rr(c,x,y,w,h,h/2); c.fill();
+  c.save();
+  c.fillStyle=bg||'#d3dbe8'; rr(c,x,y,w,h,h/2); c.fill();
+  c.strokeStyle='rgba(90,110,140,0.35)'; c.lineWidth=1; rr(c,x+0.5,y+0.5,w-1,h-1,h/2); c.stroke();
   const f = Math.max(0,Math.min(1,v/max));
   if (f>0){
-    c.fillStyle=col; rr(c,x+1,y+1,Math.max(2,(w-2)*f),h-2,(h-2)/2); c.fill();
-    c.fillStyle='rgba(255,255,255,0.22)'; rr(c,x+1,y+1,Math.max(2,(w-2)*f),(h-2)*0.4,(h-2)/4); c.fill();
+    const fw = Math.max(h,(w-2)*f);
+    const g = c.createLinearGradient(0,y,0,y+h);
+    g.addColorStop(0, mix(col,'#ffffff',0.35)); g.addColorStop(0.5,col); g.addColorStop(1, shade(col,-30));
+    c.fillStyle=g; rr(c,x+1,y+1,fw,h-2,(h-2)/2); c.fill();
+    c.fillStyle='rgba(255,255,255,0.45)'; rr(c,x+2,y+1.5,Math.max(1,fw-2),(h-2)*0.35,(h-2)/4); c.fill();
   }
-  c.strokeStyle='rgba(255,255,255,0.20)'; c.lineWidth=1; rr(c,x+0.5,y+0.5,w-1,h-1,h/2); c.stroke();
+  c.restore();
 }
 /* アイテムのアイコンを任意の大きさで */
 function icon(c,id,x,y,size){
@@ -175,14 +307,23 @@ function dialogSeq(lines){
       const bh = Math.max(58*s, (22 + nl*13)*s);
       const bx = (W-bw)/2, by = H - bh - 8*s;
       panel(c,bx,by,bw,bh,null, L.who? npcColor(L.who) : COL.line);
-      /* 名札 */
+      /* 名札（色つきの札に白い字） */
       if (L.who){
-        const nw = c.measureText? 0:0;
         c.save(); c.font='bold '+(9*s)+'px '+UI_FONT;
-        const tw = c.measureText(L.who).width + 12*s;
+        const tw = c.measureText(L.who).width + 16*s;
         c.restore();
-        panel(c,bx+6*s,by-9*s,tw,16*s,null,npcColor(L.who));
-        txt(c,L.who,bx+12*s,by-5*s,9*s,npcColor(L.who),'left',true);
+        const nx = bx+8*s, ny = by-9*s, nh = 15*s;
+        c.save();
+        c.shadowColor='rgba(0,0,0,0.3)'; c.shadowBlur=5*s; c.shadowOffsetY=2*s;
+        const ng = c.createLinearGradient(0,ny,0,ny+nh);
+        ng.addColorStop(0, accentMid(npcColor(L.who),0.62)); ng.addColorStop(1, accentMid(npcColor(L.who),0.46));
+        c.fillStyle=ng; rr(c,nx,ny,tw,nh,nh/2); c.fill();
+        c.shadowColor='transparent';
+        c.strokeStyle='#ffffff'; c.lineWidth=Math.max(1,1.2*s); rr(c,nx,ny,tw,nh,nh/2); c.stroke();
+        c.restore();
+        UI_DARK = true;
+        txt(c,L.who,nx+tw/2,ny+2.8*s,9*s,'#ffffff','center',true);
+        UI_DARK = false;
       }
       const full = this.wrapped;
       const shown = full.slice(0, Math.floor(this.ch));
@@ -194,12 +335,12 @@ function dialogSeq(lines){
         panel(c,mx,my,mw,mh,null,COL.gold);
         for (let i=0;i<L.menu.length;i++){
           const sel = i===this.sel;
-          if (sel){ c.fillStyle='rgba(255,209,92,0.18)'; rr(c,mx+4*s,my+4*s+i*14*s,mw-8*s,14*s,3*s); c.fill(); }
-          txt(c,(sel?'▶ ':'　')+L.menu[i].label, mx+7*s, my+7*s+i*14*s, 9*s, sel?COL.gold:COL.dim);
+          if (sel) selBox(c,mx+4*s,my+4*s+i*14*s,mw-8*s,14*s,3*s);
+          txt(c,(sel?'▶ ':'　')+L.menu[i].label, mx+7*s, my+7*s+i*14*s, 9*s, sel?COL.blue:COL.dim, 'left', sel);
         }
       } else if (this.ch>=full.length){
-        const b = Math.sin(Game.time*6)>0? 1:0;
-        if (b) txt(c,'▼', bx+bw-16*s, by+bh-16*s, 9*s, COL.gold);
+        const b = Math.abs(Math.sin(Game.time*5))*2.5*s;
+        txt(c,'▼', bx+bw-16*s, by+bh-17*s+b, 9*s, COL.blue);
       }
     },
   });
@@ -221,15 +362,16 @@ function confirmBox(text, onYes, onNo){
     draw(c){
       const s=R.s,W=R.W,H=R.H;
       const bw=190*s, bh=62*s, bx=(W-bw)/2, by=(H-bh)/2;
-      c.fillStyle='rgba(0,0,0,0.45)'; c.fillRect(0,0,W,H);
+      c.fillStyle='rgba(12,20,44,0.42)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,null,COL.gold);
       txtLines(c,this.text,bx+bw/2,by+12*s,9.5*s,COL.text,13*s,'center');
       const opts=['はい','いいえ'];
       for (let i=0;i<2;i++){
         const ox = bx+bw/2 + (i===0? -48*s : 8*s);
         const sel = i===this.sel;
-        if (sel){ c.fillStyle='rgba(255,209,92,0.20)'; rr(c,ox,by+bh-20*s,40*s,14*s,3*s); c.fill(); }
-        txt(c,opts[i],ox+20*s,by+bh-17*s,9.5*s,sel?COL.gold:COL.dim,'center',sel);
+        if (sel) selBox(c,ox,by+bh-20*s,40*s,14*s,7*s);
+        else { c.fillStyle='#eef2f8'; rr(c,ox,by+bh-20*s,40*s,14*s,7*s); c.fill(); c.strokeStyle='#c9d3e2'; c.lineWidth=1; rr(c,ox+0.5,by+bh-20*s+0.5,40*s-1,14*s-1,7*s); c.stroke(); }
+        txt(c,opts[i],ox+20*s,by+bh-17*s,9.5*s,sel?COL.blue:COL.dim,'center',sel);
       }
     },
   });
@@ -266,7 +408,7 @@ function listMenu(opt){
       const rowH=(anySub? 19:14)*s;
       const bh = 22*s + Math.min(this.rows,Math.max(1,this.items.length))*rowH + (this.footer?20*s:8*s);
       const bx=(W-bw)/2, by=(H-bh)/2 - 6*s;
-      c.fillStyle='rgba(0,0,0,0.42)'; c.fillRect(0,0,W,H);
+      c.fillStyle='rgba(12,20,44,0.42)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,this.title,this.accent);
       if (!this.items.length){
         txt(c,'（なにもない）',bx+bw/2,by+30*s,9.5*s,COL.dim,'center');
@@ -275,10 +417,13 @@ function listMenu(opt){
         const idx=this.top+r; const it=this.items[idx]; if(!it) break;
         const ry = by+19*s + r*rowH;
         const sel = idx===this.i;
-        if (sel){ c.fillStyle='rgba(127,214,255,0.14)'; rr(c,bx+4*s,ry,bw-8*s,rowH,3*s); c.fill();
-          c.fillStyle=this.accent; rr(c,bx+4*s,ry,2*s,rowH,1*s); c.fill(); }
+        if (sel){ selBox(c,bx+4*s,ry,bw-8*s,rowH,4*s);
+          c.fillStyle=accentMid(this.accent,0.55); rr(c,bx+5*s,ry+2*s,2.2*s,rowH-4*s,1*s); c.fill(); }
         let tx0 = bx+9*s;
-        if (it.icon){ icon(c,it.icon,tx0,ry+2*s,13*s); tx0 += 16*s; }
+        if (it.icon){
+          c.fillStyle='rgba(255,255,255,0.8)'; rr(c,tx0-1*s,ry+1*s,15*s,15*s,3*s); c.fill();
+          c.strokeStyle='rgba(150,170,200,0.45)'; c.lineWidth=1; rr(c,tx0-1*s+0.5,ry+1*s+0.5,15*s-1,15*s-1,3*s); c.stroke();
+          icon(c,it.icon,tx0,ry+2*s,13*s); tx0 += 17*s; }
         const col = it.disabled? '#6a769a' : (it.color|| (sel?COL.text:'#cfd8ee'));
         const rightW = it.right? 34*s : 0;
         txt(c,it.label,tx0,ry+2*s,8.6*s,col,'left',sel);
@@ -333,18 +478,21 @@ function gridMenu(opt){
       const bw = cols*cell + 14*s;
       const bh = 22*s + rows*cell + 34*s;
       const bx=(W-bw)/2, by=(H-bh)/2;
-      c.fillStyle='rgba(0,0,0,0.45)'; c.fillRect(0,0,W,H);
+      c.fillStyle='rgba(12,20,44,0.42)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,this.title,this.accent);
       for (let k=0;k<N;k++){
         const cx = bx+7*s + (k%cols)*cell, cy = by+19*s + Math.floor(k/cols)*cell;
         const sel = k===this.i;
         const sl = S.inv[k];
         const dim = opt.filter && sl && !opt.filter(sl);
-        c.fillStyle = (k<10)? 'rgba(60,80,130,0.35)':'rgba(30,42,70,0.5)';
-        rr(c,cx,cy,cell-2*s,cell-2*s,2*s); c.fill();
-        c.strokeStyle= sel? COL.gold : 'rgba(120,150,200,0.28)';
-        c.lineWidth = sel? 2:1;
-        rr(c,cx+0.5,cy+0.5,cell-2*s-1,cell-2*s-1,2*s); c.stroke();
+        if (sel) selBox(c,cx,cy,cell-2*s,cell-2*s,3*s);
+        else {
+          const cg = c.createLinearGradient(0,cy,0,cy+cell);
+          cg.addColorStop(0, k<10? '#ffffff':'#f6f8fb'); cg.addColorStop(1, k<10? '#e6eef9':'#e4e8ef');
+          c.fillStyle=cg; rr(c,cx,cy,cell-2*s,cell-2*s,3*s); c.fill();
+          c.strokeStyle= k<10? 'rgba(90,150,210,0.45)':'rgba(150,165,190,0.45)'; c.lineWidth=1;
+          rr(c,cx+0.5,cy+0.5,cell-2*s-1,cell-2*s-1,3*s); c.stroke();
+        }
         if (sl){
           c.save(); if (dim) c.globalAlpha=0.3;
           icon(c,sl.id,cx+2*s,cy+2*s,(cell-6*s));
@@ -352,7 +500,7 @@ function gridMenu(opt){
           if (sl.qty>1) txt(c,String(sl.qty),cx+cell-4*s,cy+cell-10*s,7.5*s,COL.text,'right');
           if (sl.q) txt(c,starStr(sl.q),cx+2*s,cy+1*s,6*s,QUALITY[sl.q].color);
         }
-        if (k===S.hand){ c.strokeStyle=COL.green; c.lineWidth=1.5; rr(c,cx-1,cy-1,cell-2*s+2,cell-2*s+2,2*s); c.stroke(); }
+        if (k===S.hand){ c.strokeStyle=accentMid(COL.green,0.45); c.lineWidth=Math.max(1.5,1.2*s); rr(c,cx-1,cy-1,cell-2*s+2,cell-2*s+2,3*s); c.stroke(); }
       }
       /* 説明 */
       const sl = S.inv[this.i];
@@ -470,7 +618,7 @@ function openCalendar(){
       const s=R.s,W=R.W,H=R.H;
       const bw=Math.min(W-14*s,250*s), bh=Math.min(H-14*s, lines.length*12.5*s+34*s);
       const bx=(W-bw)/2, by=(H-bh)/2;
-      c.fillStyle='rgba(0,0,0,0.45)'; c.fillRect(0,0,W,H);
+      c.fillStyle='rgba(12,20,44,0.42)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,'こよみ・農場の記録',COL.gold);
       txtLines(c, lines.join('\n'), bx+11*s, by+22*s, 8.8*s, COL.text, 12.5*s);
       txt(c,'X でとじる', bx+bw-11*s, by+bh-13*s, 8*s, COL.dim,'right');
@@ -718,16 +866,19 @@ function openDex(){
       const gRows=Math.ceil(VARIETY_LIST.length/5);
       const bh=Math.min(H-12*s, 26*s + gRows*(cell*0.78) + 60*s);
       const bx=(W-bw)/2, by=(H-bh)/2;
-      c.fillStyle='rgba(0,0,0,0.5)'; c.fillRect(0,0,W,H);
+      c.fillStyle='rgba(12,20,44,0.46)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,'オババの帳面 — トマト図鑑　'+dexCount()+'/'+VARIETY_LIST.length, COL.red);
       for (let i=0;i<VARIETY_LIST.length;i++){
         const v=VARIETY_LIST[i], V=VARIETIES[v], d=S.dex[v];
         const cx=bx+10*s+(i%5)*cell, cy=by+22*s+Math.floor(i/5)*(cell*0.78);
         const sel=i===this.i;
-        c.fillStyle = d? 'rgba(40,58,96,0.6)':'rgba(24,30,48,0.6)';
-        rr(c,cx,cy,cell-4*s,cell*0.78-4*s,3*s); c.fill();
-        c.strokeStyle= sel? COL.gold : 'rgba(120,150,200,0.25)'; c.lineWidth=sel?2:1;
-        rr(c,cx+0.5,cy+0.5,cell-4*s-1,cell*0.78-4*s-1,3*s); c.stroke();
+        if (sel) selBox(c,cx,cy,cell-4*s,cell*0.78-4*s,4*s);
+        else {
+          c.fillStyle = d? '#fbfcfe':'#e3e8f0';
+          rr(c,cx,cy,cell-4*s,cell*0.78-4*s,4*s); c.fill();
+          c.strokeStyle='rgba(150,165,195,0.5)'; c.lineWidth=1;
+          rr(c,cx+0.5,cy+0.5,cell-4*s-1,cell*0.78-4*s-1,4*s); c.stroke();
+        }
         /* 実の絵 */
         const tmp = Game._dexCache || (Game._dexCache={});
         if (!tmp[v]){ const cv=mkCv(24,24); drawTomato(ctxOf(cv),12,13,7.5,V,3,{}); tmp[v]=cv; }
@@ -741,7 +892,8 @@ function openDex(){
       /* 説明 */
       const v=VARIETY_LIST[this.i], V=VARIETIES[v], d=S.dex[v];
       const dy=by+bh-56*s;
-      c.fillStyle='rgba(20,28,48,0.8)'; rr(c,bx+8*s,dy,bw-16*s,48*s,3*s); c.fill();
+      c.fillStyle='rgba(255,255,255,0.85)'; rr(c,bx+8*s,dy,bw-16*s,48*s,4*s); c.fill();
+      c.strokeStyle='rgba(150,170,200,0.5)'; c.lineWidth=1; rr(c,bx+8*s+0.5,dy+0.5,bw-16*s-1,48*s-1,4*s); c.stroke();
       if (d){
         txt(c,V.name+'　（第'+V.tier+'階梯）',bx+14*s,dy+4*s,9.5*s,COL.text,'left',true);
         txt(c,V.desc,bx+14*s,dy+15*s,8*s,COL.dim);
@@ -824,11 +976,15 @@ function showMorning(){
     key(k){ if (k==='act'||k==='cancel') uiPop(); },
     draw(c){
       const s=R.s,W=R.W,H=R.H;
-      const bw=Math.min(W-20*s,230*s), bh=Math.min(H-20*s, lines.length*12.5*s+40*s);
+      const bw=Math.min(W-20*s,250*s);
+      /* 枠の幅で折り返す（大きさが変わったときだけ計算しなおす） */
+      if (this.wrapW !== bw){ this.wrapW = bw; this.wrapped = wrapJP(c, lines.join('\n'), bw-24*s, 9*s).split('\n'); }
+      const ls = this.wrapped;
+      const bh=Math.min(H-20*s, ls.length*12.5*s+40*s);
       const bx=(W-bw)/2, by=(H-bh)/2;
-      c.fillStyle='rgba(0,0,0,0.45)'; c.fillRect(0,0,W,H);
+      c.fillStyle='rgba(12,20,44,0.42)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,'おはよう',COL.gold);
-      txtLines(c,lines.join('\n'),bx+12*s,by+24*s,9*s,COL.text,12.5*s);
+      txtLines(c,ls.join('\n'),bx+12*s,by+24*s,9*s,COL.text,12.5*s);
       txt(c,'Z でとじる',bx+bw-12*s,by+bh-14*s,8*s,COL.dim,'right');
     },
   });
@@ -865,7 +1021,7 @@ function openHelp(){
       const s=R.s,W=R.W,H=R.H;
       const bw=Math.min(W-12*s,290*s), bh=Math.min(H-12*s, lines.length*11.5*s+34*s);
       const bx=(W-bw)/2, by=(H-bh)/2;
-      c.fillStyle='rgba(0,0,0,0.55)'; c.fillRect(0,0,W,H);
+      c.fillStyle='rgba(12,20,44,0.5)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,'あそびかた',COL.blue);
       txtLines(c,lines.join('\n'),bx+12*s,by+22*s,8.5*s,COL.text,11.5*s);
       txt(c,'X でとじる',bx+bw-12*s,by+bh-13*s,8*s,COL.dim,'right');

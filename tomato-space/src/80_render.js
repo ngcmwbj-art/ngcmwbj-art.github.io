@@ -14,6 +14,18 @@ function initRender(cv){
 }
 function resize(){
   const ww = window.innerWidth, wh = window.innerHeight;
+  if (W3.on){
+    /* 3D のときは画面いっぱい。文字や枠は高解像度で描く */
+    const dpr = Math.min(2, window.devicePixelRatio||1);
+    const s = Math.min(ww/VW, wh/VH) * 0.92;
+    R.s = s*dpr;
+    R.W = Math.round(ww*dpr); R.H = Math.round(wh*dpr);
+    R.cv.width = R.W; R.cv.height = R.H;
+    R.cv.style.width = ww+'px'; R.cv.style.height = wh+'px';
+    R.c.imageSmoothingEnabled = true;
+    w3Resize(ww, wh, dpr);
+    return;
+  }
   let s = Math.min(ww/VW, wh/VH);
   s = s>=2? Math.floor(s) : Math.max(1, Math.floor(s*2)/2);
   R.s = s;
@@ -281,87 +293,163 @@ function drawLight(g, camx, camy, a){
 }
 
 /* ---------------------------------------------------------------- HUD */
+const SEASON_COL = { hi:'#ff8a3d', arashi:'#a57bff', shimo:'#3fb4f0', kage:'#7a64d8' };
+/* 丸い札（白） */
+function pill(c,x,y,w,h,opt){
+  card(c,x,y,w,h,h/2,opt);
+}
 function drawHUD(){
   const c = R.c, s = R.s, W=R.W, H=R.H;
   const s0 = seasonNow();
+  const sc = SEASON_COL[s0.id] || '#ff8a3d';
 
-  /* 左上：日付・時計・天候 */
-  const pw = 92*s, ph = 30*s;
-  panel(c, 4*s, 4*s, pw, ph, null, COL.line2);
-  txt(c, s0.name+' '+S.day+'日　'+S.year+'年目', 10*s, 8*s, 9*s, COL.text,'left',true);
-  txt(c, clockStr(), 10*s, 18*s, 9*s, isNight()? COL.blue : COL.gold,'left',true);
-  txt(c, WEATHERS[S.weather].name, pw-6*s, 18*s, 8*s, COL.dim,'right');
-  /* 天候アイコン */
-  drawWeatherIcon(c, pw-14*s, 6*s, 10*s);
+  /* ── 左上：こよみと時計 ── */
+  const cx0 = 5*s, cy0 = 5*s, cw = 106*s, ch = 34*s;
+  card(c, cx0, cy0, cw, ch, 9*s);
+  /* 季節の丸いしるし */
+  const mx = cx0+16*s, my = cy0+ch/2;
+  c.save();
+  const bg = c.createRadialGradient(mx-4*s,my-5*s,1*s,mx,my,12*s);
+  bg.addColorStop(0, mix(sc,'#ffffff',0.55)); bg.addColorStop(1, sc);
+  c.fillStyle=bg; c.beginPath(); c.arc(mx,my,11.5*s,0,6.2832); c.fill();
+  c.strokeStyle='#ffffff'; c.lineWidth=Math.max(1,1.5*s); c.stroke();
+  c.restore();
+  UI_DARK = true; txt(c, s0.name[0], mx, my-6.5*s, 11*s, '#ffffff','center',true); UI_DARK = false;
+  txt(c, s0.name+' '+S.day+'日　'+S.year+'年目', cx0+31*s, cy0+5*s, 7.5*s, COL.dim);
+  txt(c, clockStr(), cx0+31*s, cy0+14*s, 13*s, isNight()? '#3f6fd8' : '#2b3246', 'left', true);
+  drawWeatherIcon(c, cx0+cw-19*s, cy0+5*s, 13*s);
+  txt(c, clipText(c, WEATHERS[S.weather].name, 34*s, 6.5*s), cx0+cw-6*s, cy0+21*s, 6.5*s, COL.dim, 'right');
 
-  /* 右上：おかね */
-  const cw = 78*s;
-  panel(c, W-cw-4*s, 4*s, cw, 16*s, null, COL.line2);
-  txt(c, S.credits.toLocaleString()+' c', W-9*s, 9*s, 10*s, COL.gold,'right',true);
+  /* ── 右上：おかね ── */
+  const mw = 84*s, mh = 18*s, mx0 = W-mw-5*s, my0 = 5*s;
+  pill(c, mx0, my0, mw, mh);
+  c.save();
+  const coin = c.createRadialGradient(mx0+10*s,my0+6*s,1*s,mx0+11*s,my0+9*s,7*s);
+  coin.addColorStop(0,'#fff6c8'); coin.addColorStop(0.5,'#ffd24a'); coin.addColorStop(1,'#d99a10');
+  c.fillStyle=coin; c.beginPath(); c.arc(mx0+11*s, my0+9*s, 6.2*s, 0, 6.2832); c.fill();
+  c.strokeStyle='#b07a08'; c.lineWidth=Math.max(1,0.8*s); c.stroke();
+  c.fillStyle='#9a6a00'; c.font='bold '+(7.5*s)+'px '+UI_FONT; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText('c', mx0+11*s, my0+9.3*s);
+  c.restore();
+  txt(c, S.credits.toLocaleString(), mx0+mw-9*s, my0+3.6*s, 10.5*s, '#2b3246','right',true);
 
-  /* 左下：元気・水 */
-  const bx = 6*s, by = H-40*s;
-  txt(c,'元気', bx, by-1*s, 7.5*s, COL.dim);
-  bar(c, bx+18*s, by, 60*s, 7*s, S.energy, S.energyMax,
-      S.energy/S.energyMax>0.4? '#7fe0a8' : S.energy/S.energyMax>0.18? '#ffd15c':'#ff6b52');
-  txt(c, Math.ceil(S.energy)+'/'+S.energyMax, bx+80*s, by-0.5*s, 7*s, COL.dim);
-  txt(c,'水', bx, by+9*s, 7.5*s, COL.dim);
-  bar(c, bx+18*s, by+10*s, 60*s, 7*s, S.water, S.waterMax, '#7fb2d9');
-  txt(c, S.water+'/'+S.waterMax, bx+80*s, by+9.5*s, 7*s, COL.dim);
+  /* ── 場所と重力 ── */
+  const a = areaOf(S.area);
+  c.save(); c.font=(7.5*s)+'px '+UI_FONT;
+  const nw = c.measureText(a.name).width + 14*s; c.restore();
+  let lx = W-nw-5*s;
+  pill(c, lx, my0+mh+4*s, nw, 13*s);
+  txt(c, a.name, lx+nw/2, my0+mh+6.5*s, 7.5*s, COL.text,'center');
+  if (a.sky){
+    const gn = gravNow().name;
+    c.save(); c.font='bold '+(7*s)+'px '+UI_FONT; const gw=c.measureText(gn).width+12*s; c.restore();
+    const gx = W-gw-5*s, gy = my0+mh+20*s;
+    c.save();
+    const gg=c.createLinearGradient(0,gy,0,gy+12*s); gg.addColorStop(0,'#b99cff'); gg.addColorStop(1,'#7a52e0');
+    c.fillStyle=gg; rr(c,gx,gy,gw,12*s,6*s); c.fill();
+    c.strokeStyle='#ffffff'; c.lineWidth=Math.max(1,s); rr(c,gx,gy,gw,12*s,6*s); c.stroke();
+    c.restore();
+    UI_DARK=true; txt(c, gn, gx+gw/2, gy+2.3*s, 7*s, '#ffffff','center',true); UI_DARK=false;
+  }
 
-  /* 手持ち10枠 */
+  /* ── 下：手持ち10枠 ── */
   const cell = 19*s, tw = cell*10;
-  const tx0 = (W-tw)/2, ty0 = H-cell-4*s;
-  c.fillStyle='rgba(10,16,32,0.72)';
-  rr(c, tx0-3*s, ty0-3*s, tw+6*s, cell+6*s, 3*s); c.fill();
-  c.strokeStyle='rgba(120,150,200,0.25)'; c.lineWidth=1;
-  rr(c, tx0-3*s+0.5, ty0-3*s+0.5, tw+6*s-1, cell+6*s-1, 3*s); c.stroke();
+  const tx0 = (W-tw)/2, ty0 = H-cell-6*s;
+  card(c, tx0-4*s, ty0-4*s, tw+8*s, cell+8*s, 8*s, { top:'rgba(255,255,255,0.9)', bot:'rgba(226,234,246,0.9)' });
   for (let i=0;i<10;i++){
-    const cx = tx0+i*cell, sl = S.inv[i], sel = i===S.hand;
-    c.fillStyle = sel? 'rgba(127,224,168,0.20)':'rgba(34,46,76,0.75)';
-    rr(c,cx+1*s,ty0+1*s,cell-2*s,cell-2*s,2*s); c.fill();
-    c.strokeStyle = sel? COL.green : 'rgba(120,150,200,0.22)';
-    c.lineWidth = sel? 2:1;
-    rr(c,cx+1*s+0.5,ty0+1*s+0.5,cell-2*s-1,cell-2*s-1,2*s); c.stroke();
-    txt(c,String((i+1)%10), cx+3*s, ty0+2*s, 6*s, 'rgba(180,200,240,0.45)');
+    const sl = S.inv[i], sel = i===S.hand;
+    const x = tx0+i*cell + 1*s, y = ty0 + 1*s - (sel? 2*s : 0), w = cell-2*s;
+    if (sel){
+      selBox(c, x, y, w, w, 4*s);
+    } else {
+      const g = c.createLinearGradient(0,y,0,y+w);
+      g.addColorStop(0,'#ffffff'); g.addColorStop(1,'#e3eaf4');
+      c.fillStyle=g; rr(c,x,y,w,w,4*s); c.fill();
+      c.strokeStyle='rgba(140,160,195,0.55)'; c.lineWidth=1; rr(c,x+0.5,y+0.5,w-1,w-1,4*s); c.stroke();
+    }
+    txt(c, String((i+1)%10), x+2*s, y+1*s, 5.5*s, 'rgba(120,135,165,0.9)');
     if (sl){
-      icon(c, sl.id, cx+3.5*s, ty0+4*s, cell-7*s);
+      icon(c, sl.id, x+2.5*s, y+3*s, w-5*s);
       if (sl.qty>1){
-        c.fillStyle='rgba(8,12,24,0.72)';
-        rr(c, cx+cell-11*s, ty0+cell-10*s, 9*s, 8*s, 2*s); c.fill();
-        txt(c,String(sl.qty), cx+cell-3*s, ty0+cell-9.5*s, 7*s, COL.text,'right');
+        const qs = String(sl.qty);
+        c.save(); c.font='bold '+(6.5*s)+'px '+UI_FONT; const qw = c.measureText(qs).width+5*s; c.restore();
+        c.fillStyle='rgba(40,52,80,0.85)'; rr(c, x+w-qw-0.5*s, y+w-8.5*s, qw, 8*s, 4*s); c.fill();
+        UI_DARK=true; txt(c, qs, x+w-qw/2-0.5*s, y+w-8*s, 6.5*s, '#ffffff','center',true); UI_DARK=false;
       }
-      if (sl.q) txt(c, starStr(sl.q), cx+cell-3*s, ty0+2*s, 5.5*s, QUALITY[sl.q].color,'right');
+      if (sl.q) txt(c, starStr(sl.q), x+w-2*s, y+1*s, 5.5*s, QUALITY[sl.q].color,'right');
+    }
+    if (sel){
+      const b = Math.abs(Math.sin(Game.time*4))*1.5*s;
+      c.fillStyle='#29a8ea';
+      c.beginPath(); c.moveTo(x+w/2-3.5*s, y-6*s-b); c.lineTo(x+w/2+3.5*s, y-6*s-b); c.lineTo(x+w/2, y-2*s-b); c.closePath(); c.fill();
     }
   }
+  /* 持っているものの名前 */
   const hi = handItem();
-  if (hi) txt(c, hi.name, W/2, ty0-13*s, 9*s, COL.text,'center',true);
+  let ny = ty0 - 22*s;
+  if (hi){
+    c.save(); c.font='bold '+(8*s)+'px '+UI_FONT; const w0 = c.measureText(hi.name).width+16*s; c.restore();
+    pill(c, (W-w0)/2, ny, w0, 13*s);
+    txt(c, hi.name, W/2, ny+2.5*s, 8*s, COL.text,'center',true);
+    ny -= 16*s;
+  }
+  /* 目のまえのもの（Z は A ボタンとして見せる） */
+  if (Game.hint){
+    let h = Game.hint, useA = false;
+    if (/（Z）$/.test(h)){ h = h.replace(/（Z）$/,''); useA = true; }
+    c.save(); c.font=(8*s)+'px '+UI_FONT; const w0 = c.measureText(h).width+(useA? 26:16)*s; c.restore();
+    const hx = (W-w0)/2;
+    pill(c, hx, ny, w0, 14*s, { top:'rgba(236,249,255,0.97)', bot:'rgba(206,236,255,0.97)', line:'rgba(90,190,245,0.9)' });
+    if (useA){ btnGlyph(c,'A', hx+9.5*s, ny+7*s, 5.3*s, '#e8453c'); txt(c, h, hx+17*s, ny+3*s, 8*s, COL.blue); }
+    else txt(c, h, W/2, ny+3*s, 8*s, COL.blue, 'center');
+  }
 
-  /* 目のまえのもの */
-  if (Game.hint) txt(c, Game.hint, W/2, ty0-24*s, 8*s, COL.blue,'center');
-
-  /* 場所の名まえ */
-  const a = areaOf(S.area);
-  txt(c, a.name, W-9*s, 24*s, 8*s, COL.dim,'right');
-  if (a.sky) txt(c, gravNow().name, W-9*s, 33*s, 8*s, COL.purple,'right');
+  /* ── 左下：元気・水 ── */
+  const sw = 106*s, sh = 30*s;
+  /* 下の隅に入らないときは、時計の下にならべる */
+  let sx = 5*s, sy = H-sh-5*s;
+  if (sx+sw > tx0-6*s || Game.touch) sy = cy0 + ch + 4*s;
+  card(c, sx, sy, sw, sh, 8*s);
+  /* ハートとしずく */
+  const ex = S.energy/S.energyMax;
+  const ecol = ex>0.4? '#46c97e' : ex>0.18? '#f0b020':'#ef5a43';
+  c.save(); c.fillStyle='#ff6b7a';
+  const hx0 = sx+9*s, hy0 = sy+9*s, hr = 3.2*s;
+  c.beginPath(); c.arc(hx0-hr*0.55,hy0-hr*0.2,hr*0.62,0,6.2832); c.arc(hx0+hr*0.55,hy0-hr*0.2,hr*0.62,0,6.2832); c.fill();
+  c.beginPath(); c.moveTo(hx0-hr*1.15,hy0); c.lineTo(hx0+hr*1.15,hy0); c.lineTo(hx0,hy0+hr*1.3); c.closePath(); c.fill();
+  c.fillStyle='#4aa8f0';
+  const dx0 = sx+9*s, dy0 = sy+21*s;
+  c.beginPath(); c.moveTo(dx0,dy0-4.5*s); c.quadraticCurveTo(dx0+3.6*s,dy0,dx0,dy0+3*s); c.quadraticCurveTo(dx0-3.6*s,dy0,dx0,dy0-4.5*s); c.fill();
+  c.restore();
+  bar(c, sx+17*s, sy+6*s, 58*s, 7*s, S.energy, S.energyMax, ecol);
+  txt(c, Math.ceil(S.energy)+'/'+S.energyMax, sx+sw-6*s, sy+5.2*s, 6.8*s, COL.dim,'right');
+  bar(c, sx+17*s, sy+17.5*s, 58*s, 7*s, S.water, S.waterMax, '#4aa8f0');
+  txt(c, S.water+'/'+S.waterMax, sx+sw-6*s, sy+16.7*s, 6.8*s, COL.dim,'right');
 
   /* 出荷箱の中身 */
-  if (S.ship.length) txt(c, '出荷箱 '+S.ship.length+'件 '+shipValue()+'c', 6*s, by-14*s, 8*s, COL.gold);
+  if (S.ship.length){
+    const st = '出荷箱 '+S.ship.length+'件　'+shipValue()+'c';
+    c.save(); c.font=(7.5*s)+'px '+UI_FONT; const w0=c.measureText(st).width+14*s; c.restore();
+    const oy = (sy < H/2)? sy+sh+4*s : sy-16*s;
+    pill(c, sx, oy, w0, 13*s);
+    txt(c, st, sx+7*s, oy+2.5*s, 7.5*s, COL.gold);
+  }
 
-  /* 通知 */
+  /* 通知（右から滑りこむ） */
   for (let i=0;i<Game.toasts.length;i++){
     const t = Game.toasts[i];
     const al = Math.min(1, Math.min(t.t*4, (3.6-t.t)*2));
     if (al<=0) continue;
     c.save(); c.globalAlpha = al;
-    const y = 44*s + i*15*s;
+    const y = 58*s + i*17*s;
     c.font = (8.5*s)+'px '+UI_FONT;
     const txtStr = clipText(c, t.text, W-40*s, 8.5*s);
-    const w = c.measureText(txtStr).width + 14*s;
-    c.fillStyle='rgba(10,16,32,0.82)'; rr(c, W-w-6*s, y, w, 13*s, 3*s); c.fill();
-    c.strokeStyle='rgba(127,214,255,0.3)'; c.lineWidth=1;
-    rr(c, W-w-6*s+0.5, y+0.5, w-1, 13*s-1, 3*s); c.stroke();
-    txt(c, txtStr, W-13*s, y+2.5*s, 8.5*s, COL.text,'right');
+    const w = c.measureText(txtStr).width + 20*s;
+    const slide = (1-Math.min(1,t.t*5))*40*s;
+    const x = W-w-6*s+slide;
+    card(c, x, y, w, 14*s, 7*s);
+    c.fillStyle='#29a8ea'; rr(c, x+3*s, y+3*s, 3*s, 8*s, 1.5*s); c.fill();
+    txt(c, txtStr, W-13*s+slide, y+2.8*s, 8.5*s, COL.text,'right');
     c.restore();
   }
 
@@ -372,54 +460,86 @@ function drawHUD(){
 function drawWeatherIcon(c,x,y,sz){
   const w = WEATHERS[S.weather].icon;
   c.save(); c.translate(x,y);
-  if (w==='sun'){ c.fillStyle='#ffd15c'; c.beginPath(); c.arc(sz/2,sz/2,sz*0.30,0,6.2832); c.fill();
-    c.strokeStyle='#ffd15c'; c.lineWidth=Math.max(1,sz*0.08);
-    for(let i=0;i<8;i++){ const a=i/8*6.2832; c.beginPath();
-      c.moveTo(sz/2+Math.cos(a)*sz*0.40, sz/2+Math.sin(a)*sz*0.40);
-      c.lineTo(sz/2+Math.cos(a)*sz*0.50, sz/2+Math.sin(a)*sz*0.50); c.stroke(); } }
-  else if (w==='drop'){ c.fillStyle='#7fb2d9'; c.beginPath();
-    c.moveTo(sz/2,sz*0.15); c.lineTo(sz*0.82,sz*0.70);
-    c.arc(sz/2,sz*0.70,sz*0.32,0,Math.PI); c.closePath(); c.fill(); }
-  else if (w==='dust'){ c.fillStyle='#d9b27a';
-    for(let i=0;i<3;i++) c.fillRect(sz*0.1, sz*(0.25+i*0.22), sz*0.8-i*sz*0.15, Math.max(1,sz*0.12)); }
-  else if (w==='meteor'){ c.fillStyle='#ff9a5c';
-    c.beginPath(); c.arc(sz*0.68,sz*0.32,sz*0.20,0,6.2832); c.fill();
-    c.strokeStyle='#ffd15c'; c.lineWidth=Math.max(1,sz*0.12);
-    c.beginPath(); c.moveTo(sz*0.55,sz*0.45); c.lineTo(sz*0.12,sz*0.88); c.stroke(); }
-  else if (w==='flare'){ c.fillStyle='#fff0a0'; c.beginPath(); c.arc(sz/2,sz/2,sz*0.26,0,6.2832); c.fill();
-    c.strokeStyle='rgba(255,200,90,0.9)'; c.lineWidth=Math.max(1,sz*0.09);
+  if (w==='sun' && isNight()){
+    /* 夜は月（別の小さな絵に描いてから貼る） */
+    if (!Game._moon){
+      const mc = mkCv(64,64), mg = mc.getContext('2d');
+      const gr = mg.createRadialGradient(24,24,4,32,32,24);
+      gr.addColorStop(0,'#fffbe0'); gr.addColorStop(1,'#ffd860');
+      mg.fillStyle=gr; mg.beginPath(); mg.arc(32,32,22,0,6.2832); mg.fill();
+      mg.globalCompositeOperation='destination-out';
+      mg.beginPath(); mg.arc(44,22,19,0,6.2832); mg.fill();
+      mg.globalCompositeOperation='source-over';
+      mg.fillStyle='#fff6c0'; mg.fillRect(52,46,4,4); mg.fillRect(12,8,3,3); mg.fillRect(56,30,2,2);
+      Game._moon = mc;
+    }
+    c.drawImage(Game._moon, 0, 0, sz, sz);
+  }
+  else if (w==='sun'){
+    const g=c.createRadialGradient(sz*0.45,sz*0.42,sz*0.05,sz/2,sz/2,sz*0.32);
+    g.addColorStop(0,'#fff6c0'); g.addColorStop(1,'#ffb020');
+    c.fillStyle=g; c.beginPath(); c.arc(sz/2,sz/2,sz*0.28,0,6.2832); c.fill();
+    c.strokeStyle='#ffb020'; c.lineWidth=Math.max(1,sz*0.09); c.lineCap='round';
+    for(let i=0;i<8;i++){ const a=i/8*6.2832+Game.time*0.4; c.beginPath();
+      c.moveTo(sz/2+Math.cos(a)*sz*0.38, sz/2+Math.sin(a)*sz*0.38);
+      c.lineTo(sz/2+Math.cos(a)*sz*0.49, sz/2+Math.sin(a)*sz*0.49); c.stroke(); } }
+  else if (w==='drop'){ c.fillStyle='#4aa8f0'; c.beginPath();
+    c.moveTo(sz/2,sz*0.12); c.quadraticCurveTo(sz*0.88,sz*0.62,sz/2,sz*0.9); c.quadraticCurveTo(sz*0.12,sz*0.62,sz/2,sz*0.12); c.fill();
+    c.fillStyle='rgba(255,255,255,0.7)'; c.beginPath(); c.arc(sz*0.4,sz*0.6,sz*0.08,0,6.2832); c.fill(); }
+  else if (w==='dust'){ c.strokeStyle='#c8904a'; c.lineWidth=Math.max(1,sz*0.1); c.lineCap='round';
+    for(let i=0;i<3;i++){ c.beginPath(); c.moveTo(sz*0.1,sz*(0.3+i*0.2)); c.quadraticCurveTo(sz*0.5,sz*(0.2+i*0.2),sz*(0.9-i*0.12),sz*(0.3+i*0.2)); c.stroke(); } }
+  else if (w==='meteor'){ c.strokeStyle='#ffb020'; c.lineWidth=Math.max(1,sz*0.12); c.lineCap='round';
+    c.beginPath(); c.moveTo(sz*0.55,sz*0.45); c.lineTo(sz*0.12,sz*0.88); c.stroke();
+    c.fillStyle='#ff7a40'; c.beginPath(); c.arc(sz*0.66,sz*0.34,sz*0.2,0,6.2832); c.fill(); }
+  else if (w==='flare'){ c.fillStyle='#ffd040'; c.beginPath(); c.arc(sz/2,sz/2,sz*0.24,0,6.2832); c.fill();
+    c.strokeStyle='rgba(255,140,40,0.95)'; c.lineWidth=Math.max(1,sz*0.09);
     c.beginPath(); c.arc(sz/2,sz/2,sz*0.42,0.4,2.2); c.stroke();
     c.beginPath(); c.arc(sz/2,sz/2,sz*0.42,3.6,5.4); c.stroke(); }
   else if (w==='plug'){ c.fillStyle='#8d94a8'; c.fillRect(sz*0.25,sz*0.3,sz*0.5,sz*0.45);
     c.fillRect(sz*0.33,sz*0.12,sz*0.10,sz*0.20); c.fillRect(sz*0.57,sz*0.12,sz*0.10,sz*0.20);
-    c.fillStyle='#ff6b52'; c.fillRect(sz*0.45,sz*0.75,sz*0.10,sz*0.15); }
+    c.fillStyle='#ef5a43'; c.fillRect(sz*0.45,sz*0.75,sz*0.10,sz*0.15); }
   c.restore();
 }
 
 function drawTouchPad(c){
   const s=R.s,W=R.W,H=R.H;
   const cx = W*0.17, cy = H*0.78, r = 26*s;
-  c.save(); c.globalAlpha=0.30;
-  c.fillStyle='#ffffff';
-  for (let i=0;i<4;i++){
-    const a = i*Math.PI/2;
-    const dx = Math.cos(a)*r, dy = Math.sin(a)*r;
-    c.beginPath(); c.arc(cx+dx, cy+dy, 11*s, 0, 6.2832); c.fill();
-  }
-  c.beginPath(); c.arc(cx,cy,7*s,0,6.2832); c.fill();
-  /* ボタン */
-  c.fillStyle='#7fe0a8'; c.beginPath(); c.arc(W*0.86, H*0.86, 17*s, 0, 6.2832); c.fill();
-  c.fillStyle='#ff9a8a'; c.beginPath(); c.arc(W*0.76, H*0.68, 13*s, 0, 6.2832); c.fill();
+  c.save();
+  /* スライドパッド */
+  c.globalAlpha=0.55;
+  const g=c.createRadialGradient(cx,cy-r*0.3,r*0.2,cx,cy,r*1.35);
+  g.addColorStop(0,'#f4f6fa'); g.addColorStop(1,'#9aa4b8');
+  c.fillStyle=g; c.beginPath(); c.arc(cx,cy,r*1.3,0,6.2832); c.fill();
+  c.globalAlpha=0.85;
+  const nx = cx + Game.pad.x*r*0.55, ny = cy + Game.pad.y*r*0.55;
+  const g2=c.createRadialGradient(nx-5*s,ny-6*s,2*s,nx,ny,15*s);
+  g2.addColorStop(0,'#ffffff'); g2.addColorStop(1,'#b8c0d0');
+  c.fillStyle=g2; c.beginPath(); c.arc(nx,ny,14*s,0,6.2832); c.fill();
+  c.strokeStyle='rgba(90,100,120,0.5)'; c.lineWidth=Math.max(1,s); c.stroke();
   c.restore();
-  txt(c,'A', W*0.86, H*0.86-5*s, 10*s, '#0d2018','center',true);
-  txt(c,'B', W*0.76, H*0.68-4*s, 8*s, '#2a0d08','center',true);
-  txt(c,'袋', W*0.93, H*0.06, 9*s, 'rgba(255,255,255,0.55)','center');
-  txt(c,'道具', W*0.79, H*0.06, 9*s, 'rgba(255,255,255,0.55)','center');
+  c.save(); c.globalAlpha=0.9;
+  btnGlyph(c,'A', W*0.86, H*0.86, 17*s, '#e8453c');
+  btnGlyph(c,'B', W*0.76, H*0.68, 13*s, '#f2b705');
+  c.restore();
+  /* 袋・道具のボタン（押せる範囲も覚えておく） */
+  const by0 = H*0.46;
+  const bx1 = W-40*s, bx2 = W-80*s;
+  pill(c, bx1, by0, 34*s, 16*s); txt(c,'袋', bx1+17*s, by0+3.5*s, 8.5*s, COL.text,'center',true);
+  pill(c, bx2, by0, 36*s, 16*s); txt(c,'道具', bx2+18*s, by0+3.5*s, 8.5*s, COL.text,'center',true);
+  const pad = 4*s;
+  Game.touchRects = {
+    bag:  [(bx1-pad)/W, (by0-pad)/H, (bx1+34*s+pad)/W, (by0+16*s+pad)/H],
+    next: [(bx2-pad)/W, (by0-pad)/H, (bx2+36*s+pad)/W, (by0+16*s+pad)/H],
+  };
 }
 
 /* ---------------------------------------------------------------- タイトル */
 function drawTitle(){
   const c = R.c, s=R.s, W=R.W, H=R.H;
+  if (W3.on){
+    w3RenderTitle(0,'title');
+    c.clearRect(0,0,W,H);
+  } else {
   if (!Game.titleSky) Game.titleSky = makeSky(VW,VH,0,3);
   const g = R.wc;
   g.drawImage(Game.titleSky,0,0);
@@ -430,11 +550,9 @@ function drawTitle(){
   g.globalAlpha=0.25; g.fillStyle='#e5372f';
   g.beginPath(); g.arc(cx,cy,52,0,6.2832); g.fill(); g.restore();
   drawTomato(g, cx, cy, 40, VARIETIES.akahoshi, 1, {});
-  /* 大陸のような模様 */
   g.fillStyle='rgba(90,160,90,0.30)';
   g.beginPath(); g.ellipse(cx-14,cy+6,16,9,0.4,0,6.2832); g.fill();
   g.beginPath(); g.ellipse(cx+16,cy-10,10,7,-0.3,0,6.2832); g.fill();
-  /* 軌道を回る小さな畑 */
   for (let i=0;i<3;i++){
     const a = t*0.5 + i*2.1;
     const ox = cx + Math.cos(a)*76, oy = cy + Math.sin(a)*22;
@@ -442,38 +560,58 @@ function drawTitle(){
     g.beginPath(); g.ellipse(ox,oy,7,3,0,0,6.2832); g.fill();
     drawPlant(g, ox, oy, ['akahoshi','comet','sunflare'][i], 4, 0.7, {seed:i});
   }
-  /* 宇宙船 */
   const sx = ((t*18)%(VW+80))-40;
   px(g, sx, 28, 10,4,'#c6cbd9'); px(g,sx+9,29,4,2,'#8d94a8');
   px(g, sx+2,26,4,2,'#7fd6ff'); px(g,sx-4,29,4,2,'rgba(255,150,90,0.8)');
-
   R.c.drawImage(R.world, 0,0, R.W, R.H);
+  }
 
-  /* 題 */
-  const ty = H*0.13;
+  /* 題（白いふちどり・ぷっくりした字） */
+  const bounce = Math.sin(Game.time*2)*1.5*s;
+  const ty = H*0.1 + bounce;
+  const fs = Math.min(30*s, W/9);
   c.save();
-  c.textAlign='center';
-  c.font='bold '+(30*s)+'px '+UI_FONT;
-  c.fillStyle='rgba(0,0,0,0.6)'; c.fillText('トマト宇宙農園', W/2+2*s, ty+2*s+30*s*0.8);
-  const grd = c.createLinearGradient(0,ty,0,ty+34*s);
-  grd.addColorStop(0,'#ffe9a8'); grd.addColorStop(0.5,'#ff8a72'); grd.addColorStop(1,'#e5372f');
-  c.fillStyle=grd; c.fillText('トマト宇宙農園', W/2, ty+30*s*0.8);
+  c.textAlign='center'; c.textBaseline='alphabetic';
+  c.font='bold '+fs+'px '+UI_FONT;
+  c.lineJoin='round';
+  c.fillStyle='rgba(20,10,40,0.45)'; c.fillText('トマト宇宙農園', W/2+2*s, ty+fs*0.85+3*s);
+  c.strokeStyle='#ffffff'; c.lineWidth=fs*0.2; c.strokeText('トマト宇宙農園', W/2, ty+fs*0.85);
+  c.strokeStyle='#ffb3a6'; c.lineWidth=fs*0.08; c.strokeText('トマト宇宙農園', W/2, ty+fs*0.85);
+  const grd = c.createLinearGradient(0,ty,0,ty+fs);
+  grd.addColorStop(0,'#ffe07a'); grd.addColorStop(0.45,'#ff7a52'); grd.addColorStop(1,'#d8261e');
+  c.fillStyle=grd; c.fillText('トマト宇宙農園', W/2, ty+fs*0.85);
   c.restore();
-  txt(c,'— TOMATO  STAR  FARM —', W/2, ty+34*s, 9*s, COL.gold,'center');
-  txt(c,'小惑星ソラナム　軌道農場記', W/2, ty+46*s, 8.5*s, COL.dim,'center');
+  /* 副題の札 */
+  const st = 'TOMATO  STAR  FARM';
+  c.save(); c.font='bold '+(8.5*s)+'px '+UI_FONT; const stw = c.measureText(st).width+22*s; c.restore();
+  c.save();
+  const sg = c.createLinearGradient(0,ty+fs+6*s,0,ty+fs+20*s);
+  sg.addColorStop(0,'#5ad0ff'); sg.addColorStop(1,'#1f8fe0');
+  c.fillStyle=sg; rr(c,(W-stw)/2, ty+fs+6*s, stw, 14*s, 7*s); c.fill();
+  c.strokeStyle='#ffffff'; c.lineWidth=Math.max(1,1.4*s); rr(c,(W-stw)/2, ty+fs+6*s, stw, 14*s, 7*s); c.stroke();
+  c.restore();
+  UI_DARK = true;
+  txt(c, st, W/2, ty+fs+8.8*s, 8.5*s, '#ffffff','center',true);
+  txt(c,'小惑星ソラナム　軌道農場記', W/2, ty+fs+24*s, 8.5*s, '#e8eeff','center');
+  UI_DARK = false;
 
-  /* メニュー */
+  /* メニュー（丸いボタンが縦にならぶ） */
   const opts = hasSave()? ['つづきから','はじめから','あそびかた'] : ['はじめる','あそびかた'];
   Game.titleOpts = opts;
-  const mw=120*s, mh=opts.length*17*s+10*s;
-  const mx=(W-mw)/2, my=H-mh-20*s;
-  panel(c,mx,my,mw,mh,null,COL.gold);
+  const bw=120*s, bh=18*s, gap=5*s;
+  const my=H-(opts.length*(bh+gap))-24*s;
   for (let i=0;i<opts.length;i++){
     const sel = i===(Game.titleSel||0);
-    if (sel){ c.fillStyle='rgba(255,209,92,0.18)'; rr(c,mx+5*s,my+5*s+i*17*s,mw-10*s,16*s,3*s); c.fill(); }
-    txt(c,(sel?'▶ ':'　')+opts[i], mx+mw/2, my+8*s+i*17*s, 10*s, sel?COL.gold:COL.dim,'center',sel);
+    const x=(W-bw)/2 + (sel? 0 : 0), y=my+i*(bh+gap);
+    if (sel) selBox(c,x-3*s,y-1*s,bw+6*s,bh+2*s,(bh+2*s)/2);
+    else card(c,x,y,bw,bh,bh/2);
+    txt(c, opts[i], W/2, y+4.2*s, 9.5*s, sel? COL.blue : COL.text, 'center', true);
+    if (sel) btnGlyph(c,'A', x+bw-8*s, y+bh/2, 5.5*s, '#e8453c');
   }
-  txt(c, TIP_LINES[Math.floor(Game.time/5)%TIP_LINES.length], W/2, H-14*s, 7.5*s, 'rgba(200,215,245,0.55)','center');
+  const tip = TIP_LINES[Math.floor(Game.time/5)%TIP_LINES.length];
+  c.save(); c.font=(7.5*s)+'px '+UI_FONT; const tw2 = c.measureText(tip).width+18*s; c.restore();
+  c.fillStyle='rgba(8,12,30,0.55)'; rr(c,(W-tw2)/2,H-17*s,tw2,13*s,6.5*s); c.fill();
+  UI_DARK = true; txt(c, tip, W/2, H-14.5*s, 7.5*s, 'rgba(225,235,255,0.9)','center'); UI_DARK = false;
 }
 
 /* ---------------------------------------------------------------- 終幕 */
@@ -508,6 +646,11 @@ const ENDING = [
 function drawEnding(){
   const c=R.c,s=R.s,W=R.W,H=R.H;
   const g=R.wc;
+  if (W3.on){
+    w3RenderTitle(0,'ending');
+    c.clearRect(0,0,W,H);
+    c.fillStyle='rgba(6,8,18,0.45)'; c.fillRect(0,0,W,H);
+  } else {
   if (!Game.endSky) Game.endSky = makeSky(VW,VH,2,11);
   g.drawImage(Game.endSky,0,0);
   const t = Game.ending;
@@ -530,6 +673,9 @@ function drawEnding(){
   }
   R.c.drawImage(R.world,0,0,R.W,R.H);
   c.fillStyle='rgba(6,8,18,0.55)'; c.fillRect(0,0,W,H);
+  }
+  const t = Game.ending;
+  UI_DARK = true;
   /* 文字が下から上へ */
   const start = H - t*15*s;
   for (let i=0;i<ENDING.length;i++){
@@ -544,6 +690,7 @@ function drawEnding(){
   if (t > ENDING.length+10){
     txt(c,'Z で農場にもどる（このあとも遊べます）', W/2, H-18*s, 9*s, COL.blue,'center');
   }
+  UI_DARK = false;
 }
 
 /* ---------------------------------------------------------------- 暗転 */
@@ -553,6 +700,19 @@ function drawFade(){
   let a;
   if (f.phase===0) a = Math.min(1, f.t/f.dur);
   else a = Math.max(0, 1 - f.t/f.dur);
-  c.fillStyle='rgba(0,0,0,'+a.toFixed(3)+')';
-  c.fillRect(0,0,R.W,R.H);
+  /* 丸く閉じて、丸く開く（アイリス） */
+  const W=R.W, H=R.H;
+  const maxR = Math.hypot(W,H)*0.55;
+  const e = a*a*(3-2*a);
+  const rad = maxR*(1-e);
+  c.save();
+  c.fillStyle='#05060c';
+  c.beginPath(); c.rect(0,0,W,H);
+  if (rad>0.5){ c.moveTo(W/2+rad, H*0.52); c.arc(W/2, H*0.52, rad, 0, 6.2832, true); }
+  c.fill('evenodd');
+  if (rad>0.5 && rad<maxR*0.98){
+    c.strokeStyle='rgba(127,214,255,0.55)'; c.lineWidth=Math.max(2,R.s*1.5);
+    c.beginPath(); c.arc(W/2, H*0.52, rad, 0, 6.2832); c.stroke();
+  }
+  c.restore();
 }

@@ -39,19 +39,28 @@
     animation:b 1s infinite alternate; }
   @keyframes b{ from{transform:translateY(0);opacity:.4} to{transform:translateY(-6px);opacity:1} }
   #rotate{ display:none; }
+  /* 3D表示のとき：立体の画面を下に、文字やメニューを上に重ねる */
+  #g3d{ display:none; }
+  body.is3d #g3d{ display:block; position:fixed; left:0; top:0; }
+  body.is3d #game{ position:fixed; left:0; top:0; box-shadow:none; border-radius:0; background:transparent;
+                   image-rendering:auto; z-index:2; }
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="game" width="336" height="208"></canvas></div>
+<div id="wrap"><canvas id="g3d"></canvas><canvas id="game" width="336" height="208"></canvas></div>
 <div id="loading">
   <div class="t">トマト宇宙農園</div>
   <div class="s">小惑星ソラナムへ 着陸しています…</div>
   <div><span class="dot"></span></div>
 </div>
 <script>
+/*__THREE__*/
+</script>
+<script>
 /* ==========================================================================
    トマト宇宙農園 / TOMATO STAR FARM
    外部ファイル・外部通信ゼロ。このHTML1枚で動きます。
+   立体表示には three.js（MIT License）を、この1枚の中に埋めこんで使っています。
    ========================================================================== */
 (function(){
 /*__BUNDLE__*/

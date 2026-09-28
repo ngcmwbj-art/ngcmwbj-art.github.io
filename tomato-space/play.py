@@ -3,13 +3,26 @@
 """ヘッドレスChromeの中で実際にゲームを遊ばせ、その画面を play/ に書き出す。
    python3 play.py [仮想秒数]
 """
-import base64, os, re, subprocess, sys
+import base64, os, re, shutil, subprocess, sys
 
 HERE   = os.path.dirname(os.path.abspath(__file__))
 HTML   = os.path.join(HERE, 'トマト宇宙農園.html')
 SCRIPT = os.path.join(HERE, 'play_script.js')
 OUT    = os.path.join(HERE, 'play')
-CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+def _find_chrome():
+    """Chrome の場所。環境変数 TSF_CHROME があればそれを使う"""
+    cands = [os.environ.get('TSF_CHROME',''),
+             '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+             '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+             shutil.which('google-chrome') or '', shutil.which('chromium') or '']
+    for c in cands:
+        if c and os.path.exists(c): return c
+    return cands[1]
+CHROME = _find_chrome()
+# 3D表示（WebGL）をGPUなしでも描けるように
+GL_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
+if hasattr(os, 'geteuid') and os.geteuid() == 0:
+    GL_ARGS.append('--no-sandbox')   # root で動かすとき（コンテナなど）
 
 def main():
     budget = int(sys.argv[1]) if len(sys.argv) > 1 else 210
@@ -25,7 +38,7 @@ def main():
     with open(tmp, 'w', encoding='utf-8') as fp:
         fp.write(html.replace('</body>', inject + '</body>'))
 
-    cmd = [CHROME, '--headless=new', '--disable-gpu', '--hide-scrollbars',
+    cmd = [CHROME, '--headless=new', '--hide-scrollbars'] + GL_ARGS + [
            '--force-device-scale-factor=1', '--window-size=1060,740',
            '--virtual-time-budget=%d' % (budget*1000),
            '--dump-dom', 'file://' + tmp]
