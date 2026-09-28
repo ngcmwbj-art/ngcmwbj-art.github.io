@@ -10,6 +10,12 @@ const COL = {
 };
 
 function uiPush(u){ Game.ui.push(u); SFX.menu(); }
+/* 指（やマウス）で押せる場所を、このフレームのぶん登録する。いちばん上の画面のものだけ */
+function tapZone(owner,x,y,w,h,fn){
+  if (owner && owner!==uiTop()) return;
+  if (!owner && uiTop()) return;
+  (Game.tapHits || (Game.tapHits=[])).push({ x, y, w, h, fn });
+}
 function uiPop(){ Game.ui.pop(); SFX.menu(); }
 function uiTop(){ return Game.ui.length? Game.ui[Game.ui.length-1] : null; }
 function uiClear(){ Game.ui.length = 0; }
@@ -307,6 +313,7 @@ function dialogSeq(lines){
       const bh = Math.max(58*s, (22 + nl*13)*s);
       const bx = (W-bw)/2, by = H - bh - 8*s;
       panel(c,bx,by,bw,bh,null, L.who? npcColor(L.who) : COL.line);
+      if (!L.menu || this.ch < (this.wrapped||'').length) tapZone(this, bx,by-10*s,bw,bh+10*s, ()=>this.key('act'));
       /* 名札（色つきの札に白い字） */
       if (L.who){
         c.save(); c.font='bold '+(9*s)+'px '+UI_FONT;
@@ -336,6 +343,7 @@ function dialogSeq(lines){
         for (let i=0;i<L.menu.length;i++){
           const sel = i===this.sel;
           if (sel) selBox(c,mx+4*s,my+4*s+i*14*s,mw-8*s,14*s,3*s);
+          tapZone(this, mx+2*s,my+4*s+i*14*s,mw-4*s,14*s, ()=>{ this.sel=i; this.key('act'); });
           txt(c,(sel?'▶ ':'　')+L.menu[i].label, mx+7*s, my+7*s+i*14*s, 9*s, sel?COL.blue:COL.dim, 'left', sel);
         }
       } else if (this.ch>=full.length){
@@ -369,6 +377,7 @@ function confirmBox(text, onYes, onNo){
       for (let i=0;i<2;i++){
         const ox = bx+bw/2 + (i===0? -48*s : 8*s);
         const sel = i===this.sel;
+        tapZone(this, ox-4*s,by+bh-24*s,48*s,22*s, ()=>{ this.sel=i; this.key('act'); });
         if (sel) selBox(c,ox,by+bh-20*s,40*s,14*s,7*s);
         else { c.fillStyle='#eef2f8'; rr(c,ox,by+bh-20*s,40*s,14*s,7*s); c.fill(); c.strokeStyle='#c9d3e2'; c.lineWidth=1; rr(c,ox+0.5,by+bh-20*s+0.5,40*s-1,14*s-1,7*s); c.stroke(); }
         txt(c,opts[i],ox+20*s,by+bh-17*s,9.5*s,sel?COL.blue:COL.dim,'center',sel);
@@ -417,6 +426,7 @@ function listMenu(opt){
         const idx=this.top+r; const it=this.items[idx]; if(!it) break;
         const ry = by+19*s + r*rowH;
         const sel = idx===this.i;
+        tapZone(this, bx+4*s, ry, bw-8*s, rowH, ()=>{ this.i=idx; this.key('act'); });
         if (sel){ selBox(c,bx+4*s,ry,bw-8*s,rowH,4*s);
           c.fillStyle=accentMid(this.accent,0.55); rr(c,bx+5*s,ry+2*s,2.2*s,rowH-4*s,1*s); c.fill(); }
         let tx0 = bx+9*s;
@@ -432,12 +442,16 @@ function listMenu(opt){
       }
       /* スクロール印 */
       if (this.items.length>this.rows){
-        if (this.top>0) txt(c,'▲',bx+bw-5*s,by+19*s,7*s,COL.dim,'center');
-        if (this.top+this.rows<this.items.length) txt(c,'▼',bx+bw-5*s,by+bh-(this.footer?27*s:13*s),7*s,COL.dim,'center');
+        if (this.top>0){ txt(c,'▲',bx+bw-5*s,by+19*s,7*s,COL.dim,'center');
+          tapZone(this, bx, by+12*s, bw, 8*s, ()=>this.key('up')); }
+        if (this.top+this.rows<this.items.length){ txt(c,'▼',bx+bw-5*s,by+bh-(this.footer?27*s:13*s),7*s,COL.dim,'center');
+          tapZone(this, bx, by+19*s+this.rows*rowH, bw, 10*s, ()=>this.key('down')); }
       }
       if (this.footer){
         txt(c,this.footer,bx+9*s,by+bh-15*s,8*s,COL.dim);
-        if (this.allowQty) txt(c,'◀ '+this.qty+'個 ▶', bx+bw-9*s, by+bh-15*s, 8*s, COL.green,'right');
+        if (this.allowQty){ txt(c,'◀ '+this.qty+'個 ▶', bx+bw-9*s, by+bh-15*s, 8*s, COL.green,'right');
+          tapZone(this, bx+bw-60*s, by+bh-19*s, 25*s, 16*s, ()=>this.key('left'));
+          tapZone(this, bx+bw-30*s, by+bh-19*s, 25*s, 16*s, ()=>this.key('right')); }
       } else if (this.allowQty){
         txt(c,'◀ '+this.qty+'個 ▶', bx+bw-9*s, by+bh-13*s, 8*s, COL.green,'right');
       }
@@ -485,6 +499,7 @@ function gridMenu(opt){
         const sel = k===this.i;
         const sl = S.inv[k];
         const dim = opt.filter && sl && !opt.filter(sl);
+        tapZone(this, cx, cy, cell-2*s, cell-2*s, ()=>{ if (this.i===k) this.key('act'); else { this.i=k; SFX.menu(); } });
         if (sel) selBox(c,cx,cy,cell-2*s,cell-2*s,3*s);
         else {
           const cg = c.createLinearGradient(0,cy,0,cy+cell);
@@ -620,6 +635,7 @@ function openCalendar(){
       const bx=(W-bw)/2, by=(H-bh)/2;
       c.fillStyle='rgba(12,20,44,0.42)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,'こよみ・農場の記録',COL.gold);
+      tapZone(this, bx,by,bw,bh, ()=>this.key('act'));
       txtLines(c, lines.join('\n'), bx+11*s, by+22*s, 8.8*s, COL.text, 12.5*s);
       txt(c,'X でとじる', bx+bw-11*s, by+bh-13*s, 8*s, COL.dim,'right');
     },
@@ -872,6 +888,7 @@ function openDex(){
         const v=VARIETY_LIST[i], V=VARIETIES[v], d=S.dex[v];
         const cx=bx+10*s+(i%5)*cell, cy=by+22*s+Math.floor(i/5)*(cell*0.78);
         const sel=i===this.i;
+        tapZone(this, cx, cy, cell-4*s, cell*0.78-4*s, ()=>{ this.i=i; SFX.menu(); });
         if (sel) selBox(c,cx,cy,cell-4*s,cell*0.78-4*s,4*s);
         else {
           c.fillStyle = d? '#fbfcfe':'#e3e8f0';
@@ -984,6 +1001,7 @@ function showMorning(){
       const bx=(W-bw)/2, by=(H-bh)/2;
       c.fillStyle='rgba(12,20,44,0.42)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,'おはよう',COL.gold);
+      tapZone(this, bx,by,bw,bh, ()=>this.key('act'));
       txtLines(c,ls.join('\n'),bx+12*s,by+24*s,9*s,COL.text,12.5*s);
       txt(c,'Z でとじる',bx+bw-12*s,by+bh-14*s,8*s,COL.dim,'right');
     },
@@ -1023,6 +1041,7 @@ function openHelp(){
       const bx=(W-bw)/2, by=(H-bh)/2;
       c.fillStyle='rgba(12,20,44,0.5)'; c.fillRect(0,0,W,H);
       panel(c,bx,by,bw,bh,'あそびかた',COL.blue);
+      tapZone(this, bx,by,bw,bh, ()=>this.key('act'));
       txtLines(c,lines.join('\n'),bx+12*s,by+22*s,8.5*s,COL.text,11.5*s);
       txt(c,'X でとじる',bx+bw-12*s,by+bh-13*s,8*s,COL.dim,'right');
     },

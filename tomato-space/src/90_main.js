@@ -151,6 +151,24 @@ function updateTitle(dt){
   }
 }
 
+/* 触って遊ぶとき：スライドパッドを倒したら、メニューでも上下左右を押したことにする
+   （倒したままなら、少し待ってから連続で送る） */
+function padToKeys(dt){
+  if (!Game.touch) return;
+  const px_ = Game.pad.x, py_ = Game.pad.y;
+  let dir = null;
+  if (Math.abs(py_) >= Math.abs(px_)){ if (py_<0) dir='up'; else if (py_>0) dir='down'; }
+  if (!dir){ if (px_<0) dir='left'; else if (px_>0) dir='right'; }
+  const menu = !!uiTop() || Game.mode!=='play';
+  if (dir !== Game.padDir){
+    Game.padDir = dir; Game.padRep = 0.38;
+    if (dir && menu) Game.pressed[dir] = true;
+  } else if (dir && menu){
+    Game.padRep -= dt;
+    if (Game.padRep <= 0){ Game.padRep = 0.12; Game.pressed[dir] = true; }
+  }
+}
+
 /* ---------------------------------------------------------------- 本体 */
 function loop(ts){
   if (!Game.lastT) Game.lastT = ts;
@@ -172,6 +190,8 @@ function loop(ts){
   }
 
   const c = R.c;
+  padToKeys(dt);
+  Game.tapHits = [];
   if (Game.mode==='title'){
     updateTitle(dt);
     drawTitle();
