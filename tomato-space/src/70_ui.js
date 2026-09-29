@@ -184,7 +184,15 @@ function btnGlyph(c,label,x,y,r,col){
   c.fillText(label,x,y+r*0.06);
   c.restore();
 }
+/* 触って遊ぶときは、キーの名前を画面のボタンの名前にかえて見せる */
+function keyNames(str){
+  if (!Game.touch) return str;
+  return String(str)
+    .replace(/Z(?=\s?で|＝|）|】)/g,'A').replace(/X(?=\s?で|＝|】)/g,'B')
+    .replace('Z/スペース','A').replace('X または Esc','B').replace('Z または スペース','A');
+}
 function txt(c,str,x,y,size,color,align,bold){
+  str = keyNames(str);
   c.save();
   c.font=(bold?'bold ':'')+(size)+'px '+UI_FONT;
   c.textAlign=align||'left'; c.textBaseline='top';

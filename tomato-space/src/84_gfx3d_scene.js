@@ -446,7 +446,7 @@ function w3Dispose(root){
 function w3EnterArea(){
   const T = W3.T;
   const a = areaOf(S.area);
-  W3.area = S.area; W3.areaObj = a;
+  W3.area = S.area; W3.areaObj = a; W3.objArr = a.objs; W3.objLen = (a.objs||[]).length;
   /* 片づけ */
   const clear = (g, dispose)=>{
     while (g.children.length){ const c = g.children[0]; g.remove(c); if (dispose) w3Dispose(c); }
@@ -524,7 +524,7 @@ function w3SyncObjs(force){
       W3.lightSrc = W3.lightSrc.filter(l=>l.obj!==e.o);
       W3.anims = W3.anims.filter(f=>f.obj!==e.o);
     }
-    e.sig = sig; e.grp = null;
+    e.sig = sig; e.grp = null; e.faded = false;
     if (sig==='gone') continue;
     const d = OBJDEF[e.o.t]; if (!d) continue;
     const fn = W3OBJ[e.o.t];
@@ -736,7 +736,8 @@ function w3Frame(dt){
   const T = W3.T;
   const a = areaOf(S.area);
   if (!a) return;
-  if (W3.area !== S.area || W3.areaObj !== a) w3EnterArea();
+  /* 場所が変わった・置いてあるものが増えた（隕石の石など）ときは組みなおす */
+  if (W3.area !== S.area || W3.areaObj !== a || W3.objArr !== a.objs || W3.objLen !== (a.objs||[]).length) w3EnterArea();
   w3UpdateCamera(dt);
   const dark = w3Env();
   w3Lighting(dark);

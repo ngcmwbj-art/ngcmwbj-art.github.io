@@ -5,7 +5,36 @@
 const SAVE_KEY = 'tomato_space_farm_save_v1';
 let S = null;
 
+/* 外に置いてあるもの（石・低木など）の状態。はじめの形をとっておき、セーブにも入れる */
+const WORLD_AREAS = ['home','station'];
+let WORLD0 = null;
+function worldSnapshot(){
+  const o = {};
+  for (const id of WORLD_AREAS) o[id] = JSON.parse(JSON.stringify(AREAS[id].objs));
+  return o;
+}
+function worldReset(){
+  if (!WORLD0) WORLD0 = worldSnapshot();
+  for (const id of WORLD_AREAS) AREAS[id].objs = JSON.parse(JSON.stringify(WORLD0[id]));
+}
+function worldRestore(saved){
+  worldReset();
+  if (!saved) return;
+  for (const id of WORLD_AREAS){
+    if (!Array.isArray(saved[id])) continue;
+    /* 石・低木の状態と、あとから落ちてきた石だけを戻す（建物などはいつもの配置のまま） */
+    const cur = AREAS[id].objs;
+    for (const so of saved[id]){
+      if (so.t!=='rock' && so.t!=='shrub') continue;
+      const o = cur.find(q=>q.t===so.t && q.x===so.x && q.y===so.y);
+      if (o){ o.gone = !!so.gone; o.hp = so.hp||0; }
+      else if (so.spawned && !so.gone) cur.push({ t:so.t, x:so.x, y:so.y, k:so.k||1, spawned:true, hp:so.hp||0 });
+    }
+  }
+}
+
 function newGame(farmName, playerName){
+  worldReset();
   S = {
     ver:1,
     farmName: farmName || 'ソラナム農場',
@@ -39,6 +68,9 @@ function saveGame(){
   try{
     const copy = Object.assign({}, S);
     delete copy.mineArea; delete copy.t;
+    copy.world = {};
+    for (const id of WORLD_AREAS) copy.world[id] = AREAS[id].objs.filter(o=>o.t==='rock'||o.t==='shrub')
+      .map(o=>({ t:o.t, x:o.x, y:o.y, k:o.k, gone:!!o.gone, hp:o.hp||0, spawned:!!o.spawned }));
     localStorage.setItem(SAVE_KEY, JSON.stringify(copy));
     return true;
   }catch(e){ console.warn('save failed', e); return false; }
@@ -54,6 +86,7 @@ function loadGame(){
     if (!o || !o.inv) return false;
     S = o;
     S.t = 0;
+    worldRestore(S.world); delete S.world;
     if (!S.stat) S.stat = { harvested:0, shipped:0, watered:0, tilled:0, rocks:0, mutations:0, days:0 };
     if (!S.ground) S.ground = [];
     if (S.area==='mine') S.area='home', S.px=5*TILE+8, S.py=23*TILE+12;

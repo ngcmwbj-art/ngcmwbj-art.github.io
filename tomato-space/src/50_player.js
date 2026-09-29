@@ -60,7 +60,8 @@ const KEYMAP = {
 function bindInput(cv){
   window.addEventListener('keydown', e=>{
     const k = KEYMAP[e.code];
-    if (k){ e.preventDefault(); if (!Game.keys[k]) Game.pressed[k]=true; Game.keys[k]=true; }
+    /* 1コマのあいだに何回押されたかも数える（重い端末で連打がぬけないように） */
+    if (k){ e.preventDefault(); if (!Game.keys[k]) Game.pressed[k]=(Game.pressed[k]|0)+1; Game.keys[k]=true; }
     audioResume();
   });
   window.addEventListener('keyup', e=>{
@@ -344,8 +345,16 @@ function interact(){
           return;
       }
     }
-    if (o.t==='rock'){ actPick(fx_,fy_); return; }
-    if (o.t==='shrub'){ toast('コスモ低木。カマで刈れる。'); return; }
+    /* 石や低木は、合った道具を持っているときだけ */
+    const tool = handItem();
+    if (o.t==='rock'){
+      if (tool && tool.id==='t_pick'){ actPick(fx_,fy_); return; }
+      toast('石だ。ツルハシで割れる。'); SFX.no(); return;
+    }
+    if (o.t==='shrub'){
+      if (tool && tool.id==='t_sickle'){ actSickle(fx_,fy_); return; }
+      toast('コスモ低木。カマで刈れる。'); SFX.no(); return;
+    }
     if (o.t==='crate'){ toast('農機具の箱。中身はもう空っぽ。'); return; }
     if (o.t==='poster'){ dialogSeq([{who:'', text:'色あせたポスター。\n『地球産トマト　—— もう一度、あの味を。』'}]); return; }
   }
@@ -353,7 +362,7 @@ function interact(){
   /* 実っていたら収穫 */
   const c = cropAt(S.area,fx_,fy_);
   const hs = handSlot(), hi = handItem();
-  if (c && cropStage(c)===4 && !(hi && hi.id==='t_sickle')){
+  if (c && cropStage(c)===4){
     if (hi && hi.id==='t_scan'){ scanCrop(c); return; }
     actHarvest(fx_,fy_); return;
   }
@@ -471,9 +480,15 @@ function talkTo(id){
     ]});
   } else if (id==='toma'){
     SFX.cat();
-    npcGain(id, 4);
-    lines.push({who:'', text:'（トマをなでた。しばらく元気が出た）'});
-    S.energy = Math.min(S.energyMax, S.energy+6);
+    if (st.petDay !== absDay()){
+      /* なでて元気が出るのは1日1回 */
+      st.petDay = absDay();
+      npcGain(id, 4);
+      lines.push({who:'', text:'（トマをなでた。しばらく元気が出た）'});
+      S.energy = Math.min(S.energyMax, S.energy+6);
+    } else {
+      lines.push({who:'', text:'（トマはのどを鳴らしている。今日はもう満足そうだ）'});
+    }
   }
   dialogSeq(lines);
 }
@@ -503,7 +518,7 @@ function obabaHint(){
   if (dry) t.push('水をやってない株が'+dry+'ある。');
   if (S.tomorrowWeather==='flare' && !hasUp('shield')) t.push('明日はフレアだ。シールドが無いなら、覚悟しておきな。……悪いことばかりでもない。');
   if (S.tomorrowWeather==='meteor') t.push('明日は隕石雨だ。畑に石が転がるよ。隕鉄が落ちてることもある。');
-  if (S.tomorrowWeather==='dew') t.push('明日は結露だ。水やりは休んでいい。');
+  if (S.tomorrowWeather==='dew') t.push('明日の朝は結露だ。明日の水やりは休んでいい。');
   if (seasonNow().id==='shimo' && !hasUp('heater')) t.push('霜季だ。フロストベルとブラックホール以外は凍る。');
   if (seasonNow().id==='kage' && !hasUp('lamp')) t.push('影季だ。ネビュラ以外は光が足りん。');
   if (grav.fallRisk>0 && !hasUp('stake')) t.push('その重力じゃ茎が倒れる。支柱を買いな。');
