@@ -56,8 +56,9 @@ function computeHint(){
       down:'下の層へ', up:'上へもどる',
     };
     if (d && d.act && L[d.act]) return L[d.act]+'（Z）';
-    if (o.t==='rock') return '石を割る（ツルハシ）';
-    if (o.t==='shrub') return 'コスモ低木（カマで刈れる）';
+    const hi0 = handItem();
+    if (o.t==='rock') return (hi0 && hi0.id==='t_pick')? '石を割る（Z）' : '石（ツルハシで割れる）';
+    if (o.t==='shrub') return (hi0 && hi0.id==='t_sickle')? '低木を刈る（Z）' : 'コスモ低木（カマで刈れる）';
   }
   const c = cropAt(S.area,fx_,fy_);
   if (c){
@@ -84,7 +85,7 @@ function updatePlay(dt){
   const top = uiTop();
   if (top){
     if (top.update) top.update(dt);
-    for (const k in Game.pressed) if (Game.pressed[k]) top.key(k);
+    uiKeys(top);
     Game.hint='';
   } else if (!Game.fade || Game.fade.phase===1){
     updatePlayer(dt);
@@ -136,7 +137,7 @@ function updateTitle(dt){
   if (uiTop()){
     const top=uiTop();
     if (top.update) top.update(dt);
-    for (const k in Game.pressed) if (Game.pressed[k]) top.key(k);
+    uiKeys(top);
     return;
   }
   if (pressed('act')){
@@ -166,6 +167,19 @@ function padToKeys(dt){
   } else if (dir && menu){
     Game.padRep -= dt;
     if (Game.padRep <= 0){ Game.padRep = 0.12; Game.pressed[dir] = true; }
+  }
+}
+
+/* 押されたキーをいちばん上の画面へ。上下左右は押された回数ぶん送る */
+function uiKeys(top){
+  for (const k in Game.pressed){
+    if (!Game.pressed[k]) continue;
+    const dirKey = (k==='up'||k==='down'||k==='left'||k==='right');
+    const n = dirKey? Math.min(8, Game.pressed[k]|0 || 1) : 1;
+    for (let i=0;i<n;i++){
+      if (uiTop()!==top) return;   /* 画面が閉じたり変わったりしたら、そこでやめる */
+      top.key(k);
+    }
   }
 }
 

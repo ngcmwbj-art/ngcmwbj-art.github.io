@@ -5878,7 +5878,36 @@ function warpAt(area, x, y){
 const SAVE_KEY = 'tomato_space_farm_save_v1';
 let S = null;
 
+/* 外に置いてあるもの（石・低木など）の状態。はじめの形をとっておき、セーブにも入れる */
+const WORLD_AREAS = ['home','station'];
+let WORLD0 = null;
+function worldSnapshot(){
+  const o = {};
+  for (const id of WORLD_AREAS) o[id] = JSON.parse(JSON.stringify(AREAS[id].objs));
+  return o;
+}
+function worldReset(){
+  if (!WORLD0) WORLD0 = worldSnapshot();
+  for (const id of WORLD_AREAS) AREAS[id].objs = JSON.parse(JSON.stringify(WORLD0[id]));
+}
+function worldRestore(saved){
+  worldReset();
+  if (!saved) return;
+  for (const id of WORLD_AREAS){
+    if (!Array.isArray(saved[id])) continue;
+    /* 石・低木の状態と、あとから落ちてきた石だけを戻す（建物などはいつもの配置のまま） */
+    const cur = AREAS[id].objs;
+    for (const so of saved[id]){
+      if (so.t!=='rock' && so.t!=='shrub') continue;
+      const o = cur.find(q=>q.t===so.t && q.x===so.x && q.y===so.y);
+      if (o){ o.gone = !!so.gone; o.hp = so.hp||0; }
+      else if (so.spawned && !so.gone) cur.push({ t:so.t, x:so.x, y:so.y, k:so.k||1, spawned:true, hp:so.hp||0 });
+    }
+  }
+}
+
 function newGame(farmName, playerName){
+  worldReset();
   S = {
     ver:1,
     farmName: farmName || 'ソラナム農場',
@@ -5912,6 +5941,9 @@ function saveGame(){
   try{
     const copy = Object.assign({}, S);
     delete copy.mineArea; delete copy.t;
+    copy.world = {};
+    for (const id of WORLD_AREAS) copy.world[id] = AREAS[id].objs.filter(o=>o.t==='rock'||o.t==='shrub')
+      .map(o=>({ t:o.t, x:o.x, y:o.y, k:o.k, gone:!!o.gone, hp:o.hp||0, spawned:!!o.spawned }));
     localStorage.setItem(SAVE_KEY, JSON.stringify(copy));
     return true;
   }catch(e){ console.warn('save failed', e); return false; }
@@ -5927,6 +5959,7 @@ function loadGame(){
     if (!o || !o.inv) return false;
     S = o;
     S.t = 0;
+    worldRestore(S.world); delete S.world;
     if (!S.stat) S.stat = { harvested:0, shipped:0, watered:0, tilled:0, rocks:0, mutations:0, days:0 };
     if (!S.ground) S.ground = [];
     if (S.area==='mine') S.area='home', S.px=5*TILE+8, S.py=23*TILE+12;
@@ -6167,7 +6200,8 @@ const KEYMAP = {
 function bindInput(cv){
   window.addEventListener('keydown', e=>{
     const k = KEYMAP[e.code];
-    if (k){ e.preventDefault(); if (!Game.keys[k]) Game.pressed[k]=true; Game.keys[k]=true; }
+    /* 1コマのあいだに何回押されたかも数える（重い端末で連打がぬけないように） */
+    if (k){ e.preventDefault(); if (!Game.keys[k]) Game.pressed[k]=(Game.pressed[k]|0)+1; Game.keys[k]=true; }
     audioResume();
   });
   window.addEventListener('keyup', e=>{
@@ -6451,8 +6485,16 @@ function interact(){
           return;
       }
     }
-    if (o.t==='rock'){ actPick(fx_,fy_); return; }
-    if (o.t==='shrub'){ toast('コスモ低木。カマで刈れる。'); return; }
+    /* 石や低木は、合った道具を持っているときだけ */
+    const tool = handItem();
+    if (o.t==='rock'){
+      if (tool && tool.id==='t_pick'){ actPick(fx_,fy_); return; }
+      toast('石だ。ツルハシで割れる。'); SFX.no(); return;
+    }
+    if (o.t==='shrub'){
+      if (tool && tool.id==='t_sickle'){ actSickle(fx_,fy_); return; }
+      toast('コスモ低木。カマで刈れる。'); SFX.no(); return;
+    }
     if (o.t==='crate'){ toast('農機具の箱。中身はもう空っぽ。'); return; }
     if (o.t==='poster'){ dialogSeq([{who:'', text:'色あせたポスター。\n『地球産トマト　—— もう一度、あの味を。』'}]); return; }
   }
@@ -6460,7 +6502,7 @@ function interact(){
   /* 実っていたら収穫 */
   const c = cropAt(S.area,fx_,fy_);
   const hs = handSlot(), hi = handItem();
-  if (c && cropStage(c)===4 && !(hi && hi.id==='t_sickle')){
+  if (c && cropStage(c)===4){
     if (hi && hi.id==='t_scan'){ scanCrop(c); return; }
     actHarvest(fx_,fy_); return;
   }
@@ -6578,9 +6620,15 @@ function talkTo(id){
     ]});
   } else if (id==='toma'){
     SFX.cat();
-    npcGain(id, 4);
-    lines.push({who:'', text:'（トマをなでた。しばらく元気が出た）'});
-    S.energy = Math.min(S.energyMax, S.energy+6);
+    if (st.petDay !== absDay()){
+      /* なでて元気が出るのは1日1回 */
+      st.petDay = absDay();
+      npcGain(id, 4);
+      lines.push({who:'', text:'（トマをなでた。しばらく元気が出た）'});
+      S.energy = Math.min(S.energyMax, S.energy+6);
+    } else {
+      lines.push({who:'', text:'（トマはのどを鳴らしている。今日はもう満足そうだ）'});
+    }
   }
   dialogSeq(lines);
 }
@@ -6610,7 +6658,7 @@ function obabaHint(){
   if (dry) t.push('水をやってない株が'+dry+'ある。');
   if (S.tomorrowWeather==='flare' && !hasUp('shield')) t.push('明日はフレアだ。シールドが無いなら、覚悟しておきな。……悪いことばかりでもない。');
   if (S.tomorrowWeather==='meteor') t.push('明日は隕石雨だ。畑に石が転がるよ。隕鉄が落ちてることもある。');
-  if (S.tomorrowWeather==='dew') t.push('明日は結露だ。水やりは休んでいい。');
+  if (S.tomorrowWeather==='dew') t.push('明日の朝は結露だ。明日の水やりは休んでいい。');
   if (seasonNow().id==='shimo' && !hasUp('heater')) t.push('霜季だ。フロストベルとブラックホール以外は凍る。');
   if (seasonNow().id==='kage' && !hasUp('lamp')) t.push('影季だ。ネビュラ以外は光が足りん。');
   if (grav.fallRisk>0 && !hasUp('stake')) t.push('その重力じゃ茎が倒れる。支柱を買いな。');
@@ -6803,7 +6851,7 @@ function actHarvest(x,y){
 function actSickle(x,y){
   const c = cropAt(S.area,x,y);
   if (c){
-    if (cropStage(c)===4 && !c.dead){ toast('実っている。刈るのはもったいない。'); return; }
+    if (cropStage(c)===4){ actHarvest(x,y); return; }   /* 実っていたら収穫、枯れていたら片づけ */
     confirmBox('この株を刈る？（もどらない）', ()=>{
       delete S.crops[key(S.area,x,y)];
       SFX.pick(); fx(x,y,'cut'); useEnergy(ITEMS.t_sickle.ep);
@@ -6813,9 +6861,10 @@ function actSickle(x,y){
   const a = areaOf(S.area);
   const o = objAt(a,x,y);
   if (o && o.t==='shrub' && !o.gone){
-    o.gone = true; SFX.pick(); fx(x,y,'cut');
+    o.gone = true; SFX.pick(); fx(x,y,'cut'); swing('sickle');
     useEnergy(ITEMS.t_sickle.ep);
-    if (Math.random()<0.35) invPut('m_ice',1);
+    if (Math.random()<0.35){ invPut('m_ice',1); toast('低木を刈った。氷塊×1'); }
+    else toast('低木を刈った。');
     return;
   }
   swing('sickle'); SFX.pick();
@@ -6890,6 +6939,8 @@ function advanceDay(fainted){
     S.day = 1; S.season++;
     if (S.season>3){ S.season=0; S.year++; log.push('◆ '+S.year+'年目に入った'); }
     log.push('◆ 軌道季が'+SEASONS[S.season].name+'に変わった');
+    /* 刈った低木は季が変わると生えなおす */
+    for (const id in AREAS) for (const o of AREAS[id].objs||[]) if (o.t==='shrub' && o.gone) o.gone = false;
   }
   S.day2 = absDay();
   S.time = DAY_START;
@@ -6898,21 +6949,6 @@ function advanceDay(fainted){
   S.weather = S.tomorrowWeather || 'clear';
   rollWeather();
 
-  /* --- 自動散水 --- */
-  const sprinkAreas = hasUp('sprink2')? ['home','greenIn'] : hasUp('sprink')? ['home','greenIn'] : ['greenIn'];
-  for (const k in S.tiles){
-    const t = S.tiles[k];
-    const ar = k.split(':')[0];
-    if (!t.till) continue;
-    if (ar==='greenIn'){ t.wet = true; continue; }          // 温室は常に自動
-    if (S.weather==='dew'){ t.wet = true; continue; }        // 結露
-    if (hasUp('sprink') && ar==='home'){
-      const xy = k.split(':')[1].split(',').map(Number);
-      const inFieldA = xy[0]>=3 && xy[0]<=12;
-      if (hasUp('sprink2') || inFieldA) t.wet = true;
-    }
-  }
-  if (S.weather==='dew') log.push('結露で畑が潤った。');
 
   /* --- 作物の成長 --- */
   const grav = gravNow();
@@ -6966,9 +7002,24 @@ function advanceDay(fainted){
       if (c.re>0){ c.re--; }
       else if (c.prog < c.need){ c.prog++; grewAny=true; }
     }
-    if (t) t.wet = false;
   }
-  for (const k in S.tiles){ const t=S.tiles[k]; if (t.till && !S.crops[k]) t.wet=false; }
+  /* ひと晩で水を使いきる */
+  for (const k in S.tiles) S.tiles[k].wet = false;
+
+  /* --- 朝の水（温室・結露・自動散水）。この水で今夜も育つ --- */
+  for (const k in S.tiles){
+    const t = S.tiles[k];
+    const ar = k.split(':')[0];
+    if (!t.till) continue;
+    if (ar==='greenIn'){ t.wet = true; continue; }          // 温室は常に自動
+    if (S.weather==='dew' && ar==='home'){ t.wet = true; continue; }   // 結露
+    if (hasUp('sprink') && ar==='home'){
+      const xy = k.split(':')[1].split(',').map(Number);
+      const inFieldA = xy[0]>=3 && xy[0]<=12;
+      if (hasUp('sprink2') || inFieldA) t.wet = true;
+    }
+  }
+  if (S.weather==='dew') log.push('結露で畑が潤った。');
 
   if (withered) log.push('作物が'+withered+'株 枯れた。');
   if (fell) log.push(fell+'株が低重力で倒れた。（支柱があれば防げる）');
@@ -7291,7 +7342,15 @@ function btnGlyph(c,label,x,y,r,col){
   c.fillText(label,x,y+r*0.06);
   c.restore();
 }
+/* 触って遊ぶときは、キーの名前を画面のボタンの名前にかえて見せる */
+function keyNames(str){
+  if (!Game.touch) return str;
+  return String(str)
+    .replace(/Z(?=\s?で|＝|）|】)/g,'A').replace(/X(?=\s?で|＝|】)/g,'B')
+    .replace('Z/スペース','A').replace('X または Esc','B').replace('Z または スペース','A');
+}
 function txt(c,str,x,y,size,color,align,bold){
+  str = keyNames(str);
   c.save();
   c.font=(bold?'bold ':'')+(size)+'px '+UI_FONT;
   c.textAlign=align||'left'; c.textBaseline='top';
@@ -10649,7 +10708,7 @@ function w3Dispose(root){
 function w3EnterArea(){
   const T = W3.T;
   const a = areaOf(S.area);
-  W3.area = S.area; W3.areaObj = a;
+  W3.area = S.area; W3.areaObj = a; W3.objArr = a.objs; W3.objLen = (a.objs||[]).length;
   /* 片づけ */
   const clear = (g, dispose)=>{
     while (g.children.length){ const c = g.children[0]; g.remove(c); if (dispose) w3Dispose(c); }
@@ -10727,7 +10786,7 @@ function w3SyncObjs(force){
       W3.lightSrc = W3.lightSrc.filter(l=>l.obj!==e.o);
       W3.anims = W3.anims.filter(f=>f.obj!==e.o);
     }
-    e.sig = sig; e.grp = null;
+    e.sig = sig; e.grp = null; e.faded = false;
     if (sig==='gone') continue;
     const d = OBJDEF[e.o.t]; if (!d) continue;
     const fn = W3OBJ[e.o.t];
@@ -10939,7 +10998,8 @@ function w3Frame(dt){
   const T = W3.T;
   const a = areaOf(S.area);
   if (!a) return;
-  if (W3.area !== S.area || W3.areaObj !== a) w3EnterArea();
+  /* 場所が変わった・置いてあるものが増えた（隕石の石など）ときは組みなおす */
+  if (W3.area !== S.area || W3.areaObj !== a || W3.objArr !== a.objs || W3.objLen !== (a.objs||[]).length) w3EnterArea();
   w3UpdateCamera(dt);
   const dark = w3Env();
   w3Lighting(dark);
@@ -11336,8 +11396,9 @@ function computeHint(){
       down:'下の層へ', up:'上へもどる',
     };
     if (d && d.act && L[d.act]) return L[d.act]+'（Z）';
-    if (o.t==='rock') return '石を割る（ツルハシ）';
-    if (o.t==='shrub') return 'コスモ低木（カマで刈れる）';
+    const hi0 = handItem();
+    if (o.t==='rock') return (hi0 && hi0.id==='t_pick')? '石を割る（Z）' : '石（ツルハシで割れる）';
+    if (o.t==='shrub') return (hi0 && hi0.id==='t_sickle')? '低木を刈る（Z）' : 'コスモ低木（カマで刈れる）';
   }
   const c = cropAt(S.area,fx_,fy_);
   if (c){
@@ -11364,7 +11425,7 @@ function updatePlay(dt){
   const top = uiTop();
   if (top){
     if (top.update) top.update(dt);
-    for (const k in Game.pressed) if (Game.pressed[k]) top.key(k);
+    uiKeys(top);
     Game.hint='';
   } else if (!Game.fade || Game.fade.phase===1){
     updatePlayer(dt);
@@ -11416,7 +11477,7 @@ function updateTitle(dt){
   if (uiTop()){
     const top=uiTop();
     if (top.update) top.update(dt);
-    for (const k in Game.pressed) if (Game.pressed[k]) top.key(k);
+    uiKeys(top);
     return;
   }
   if (pressed('act')){
@@ -11446,6 +11507,19 @@ function padToKeys(dt){
   } else if (dir && menu){
     Game.padRep -= dt;
     if (Game.padRep <= 0){ Game.padRep = 0.12; Game.pressed[dir] = true; }
+  }
+}
+
+/* 押されたキーをいちばん上の画面へ。上下左右は押された回数ぶん送る */
+function uiKeys(top){
+  for (const k in Game.pressed){
+    if (!Game.pressed[k]) continue;
+    const dirKey = (k==='up'||k==='down'||k==='left'||k==='right');
+    const n = dirKey? Math.min(8, Game.pressed[k]|0 || 1) : 1;
+    for (let i=0;i<n;i++){
+      if (uiTop()!==top) return;   /* 画面が閉じたり変わったりしたら、そこでやめる */
+      top.key(k);
+    }
   }
 }
 

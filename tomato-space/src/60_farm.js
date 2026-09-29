@@ -171,7 +171,7 @@ function actHarvest(x,y){
 function actSickle(x,y){
   const c = cropAt(S.area,x,y);
   if (c){
-    if (cropStage(c)===4 && !c.dead){ toast('実っている。刈るのはもったいない。'); return; }
+    if (cropStage(c)===4){ actHarvest(x,y); return; }   /* 実っていたら収穫、枯れていたら片づけ */
     confirmBox('この株を刈る？（もどらない）', ()=>{
       delete S.crops[key(S.area,x,y)];
       SFX.pick(); fx(x,y,'cut'); useEnergy(ITEMS.t_sickle.ep);
@@ -181,9 +181,10 @@ function actSickle(x,y){
   const a = areaOf(S.area);
   const o = objAt(a,x,y);
   if (o && o.t==='shrub' && !o.gone){
-    o.gone = true; SFX.pick(); fx(x,y,'cut');
+    o.gone = true; SFX.pick(); fx(x,y,'cut'); swing('sickle');
     useEnergy(ITEMS.t_sickle.ep);
-    if (Math.random()<0.35) invPut('m_ice',1);
+    if (Math.random()<0.35){ invPut('m_ice',1); toast('低木を刈った。氷塊×1'); }
+    else toast('低木を刈った。');
     return;
   }
   swing('sickle'); SFX.pick();
@@ -258,6 +259,8 @@ function advanceDay(fainted){
     S.day = 1; S.season++;
     if (S.season>3){ S.season=0; S.year++; log.push('◆ '+S.year+'年目に入った'); }
     log.push('◆ 軌道季が'+SEASONS[S.season].name+'に変わった');
+    /* 刈った低木は季が変わると生えなおす */
+    for (const id in AREAS) for (const o of AREAS[id].objs||[]) if (o.t==='shrub' && o.gone) o.gone = false;
   }
   S.day2 = absDay();
   S.time = DAY_START;
@@ -266,21 +269,6 @@ function advanceDay(fainted){
   S.weather = S.tomorrowWeather || 'clear';
   rollWeather();
 
-  /* --- 自動散水 --- */
-  const sprinkAreas = hasUp('sprink2')? ['home','greenIn'] : hasUp('sprink')? ['home','greenIn'] : ['greenIn'];
-  for (const k in S.tiles){
-    const t = S.tiles[k];
-    const ar = k.split(':')[0];
-    if (!t.till) continue;
-    if (ar==='greenIn'){ t.wet = true; continue; }          // 温室は常に自動
-    if (S.weather==='dew'){ t.wet = true; continue; }        // 結露
-    if (hasUp('sprink') && ar==='home'){
-      const xy = k.split(':')[1].split(',').map(Number);
-      const inFieldA = xy[0]>=3 && xy[0]<=12;
-      if (hasUp('sprink2') || inFieldA) t.wet = true;
-    }
-  }
-  if (S.weather==='dew') log.push('結露で畑が潤った。');
 
   /* --- 作物の成長 --- */
   const grav = gravNow();
@@ -334,9 +322,24 @@ function advanceDay(fainted){
       if (c.re>0){ c.re--; }
       else if (c.prog < c.need){ c.prog++; grewAny=true; }
     }
-    if (t) t.wet = false;
   }
-  for (const k in S.tiles){ const t=S.tiles[k]; if (t.till && !S.crops[k]) t.wet=false; }
+  /* ひと晩で水を使いきる */
+  for (const k in S.tiles) S.tiles[k].wet = false;
+
+  /* --- 朝の水（温室・結露・自動散水）。この水で今夜も育つ --- */
+  for (const k in S.tiles){
+    const t = S.tiles[k];
+    const ar = k.split(':')[0];
+    if (!t.till) continue;
+    if (ar==='greenIn'){ t.wet = true; continue; }          // 温室は常に自動
+    if (S.weather==='dew' && ar==='home'){ t.wet = true; continue; }   // 結露
+    if (hasUp('sprink') && ar==='home'){
+      const xy = k.split(':')[1].split(',').map(Number);
+      const inFieldA = xy[0]>=3 && xy[0]<=12;
+      if (hasUp('sprink2') || inFieldA) t.wet = true;
+    }
+  }
+  if (S.weather==='dew') log.push('結露で畑が潤った。');
 
   if (withered) log.push('作物が'+withered+'株 枯れた。');
   if (fell) log.push(fell+'株が低重力で倒れた。（支柱があれば防げる）');
