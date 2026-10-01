@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#02080d">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="グソク">
+<title>グソク</title>
+<meta name="description" content="深海の水槽でオオグソクムシを産まれた瞬間から育てるゲーム">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@800&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+:root{--abyss:#02080d;--ink:#dceaf2;--dim:#7d97a6;--glow:#8fd3ff;--line:rgba(143,211,255,.18)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(120% 80% at 50% 0%,#0b2433 0%,var(--abyss) 60%);color:var(--ink);font-family:"Zen Kaku Gothic New",-apple-system,"Hiragino Sans",sans-serif}
+main{max-width:760px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 48px) 16px calc(env(safe-area-inset-bottom,0px) + 40px);display:flex;flex-direction:column;align-items:center;gap:28px;min-height:100vh}
+h1{font-family:"Shippori Mincho B1",serif;font-size:56px;letter-spacing:.3em;margin:0;padding-left:.3em;text-shadow:0 0 28px rgba(143,211,255,.35)}
+p.lead{margin:0;color:var(--dim);text-align:center;line-height:1.8}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;width:100%}
+a.card{display:flex;flex-direction:column;gap:8px;padding:22px 20px;border:1px solid var(--line);border-radius:10px;background:rgba(4,16,24,.6);color:var(--ink);text-decoration:none;transition:border-color .2s,transform .2s}
+a.card:hover,a.card:focus-visible{border-color:var(--glow);transform:translateY(-2px);outline:none}
+a.card b{font-size:20px}
+a.card span{color:var(--dim);font-size:14px;line-height:1.7}
+a.card em{font-style:normal;color:var(--glow);font-size:13px;margin-top:4px}
+.note{color:var(--dim);font-size:12.5px;line-height:1.8;max-width:560px}
+</style>
+</head>
+<body>
+<main>
+  <h1>グソク</h1>
+  <p class="lead">深海の水槽で、オオグソクムシを<br>産まれた瞬間から育てる。</p>
+  <div class="cards">
+    <a class="card" href="yuru.html"><b>ゆるキャラ版</b><span>はちまきのグソクムシ。小さい頃は這い、大きくなると二足で歩く。</span><em>あそぶ →</em></a>
+    <a class="card" href="real.html"><b>リアル版</b><span>本物そっくりのオオグソクムシ。脱皮も絶食も、限りなく本物に近く。</span><em>あそぶ →</em></a>
+  </div>
+  <p class="note">マイクボタンで話しかけられます（初回はマイクの許可を求められます）。iPhone・iPadはSafariの共有ボタンから「ホーム画面に追加」すると、アプリのように全画面で遊べます。育てたデータはこの端末のブラウザに保存されます。</p>
+</main>
+</body>
+</html>
