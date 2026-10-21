@@ -256,6 +256,25 @@ body.idle .hud-top,body.idle .console,body.idle #alert,body.idle .daily{visibili
 .rm-past{display:flex;flex-wrap:wrap;gap:6px}
 .rm-past button{font-size:12px;padding:5px 10px}
 
+.moodline{margin-top:4px;font-family:var(--f-body);font-size:13px;color:var(--ink);letter-spacing:0;line-height:1.5;max-width:min(320px,60vw)}
+.moodline span{font-family:var(--f-data);font-size:10.5px;color:var(--dim);margin-right:2px}
+.moodline.warn{color:#ffc46b}
+.moodline.good{color:#9fe3b0}
+.moodline.dark{color:#ff8f8f}
+#clock,.actions small{display:none}
+#tval{font-family:var(--f-data);font-size:.9em;opacity:.8}
+
+.t-how{font-size:15px;line-height:1.8;color:var(--ink);margin:12px 0 4px;font-weight:700}
+.tut-glow{position:relative;z-index:6;box-shadow:0 0 0 2px #ffd27a,0 0 18px rgba(255,210,122,.8)!important;animation:tutGlow 1.4s ease-in-out infinite}
+@keyframes tutGlow{50%{box-shadow:0 0 0 2px rgba(255,210,122,.5),0 0 6px rgba(255,210,122,.3)}}
+#tutchip{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:50%;transform:translateX(-50%);z-index:8;display:flex;gap:8px;align-items:center;background:rgba(40,28,6,.88);border:1px solid rgba(255,210,122,.6);border-radius:999px;padding:3px 4px 3px 12px;font-size:12px;color:#ffe3a6;white-space:nowrap}
+#tutchip[hidden]{display:none}
+#hashichip{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);z-index:8;display:flex;gap:8px;align-items:center;background:rgba(6,24,34,.88);border:1px solid rgba(143,211,255,.5);border-radius:999px;padding:4px 5px 4px 14px;font-size:13px;white-space:nowrap}
+#hashichip[hidden]{display:none}
+#hashichip button{font-size:12px;padding:4px 12px;border-radius:999px}
+#tutchip button{font-size:11px;padding:3px 10px;border-radius:999px}
+body.kbd #tutchip{display:none}
+
 @media (max-width:640px){
   .brand h1{font-size:20px}
   .gauges{min-width:0;padding:8px 10px}
@@ -282,13 +301,14 @@ body.idle .hud-top,body.idle .console,body.idle #alert,body.idle .daily{visibili
       <div>飼育 <b id="day">1</b> 日目</div>
       <div>状態 <span class="stage" id="stage">警戒</span></div>
       <div>絶食 <b id="fast">0</b> 日　<span id="pers"></span></div>
+      <div class="moodline" id="moodline"></div>
       <div id="clock">--:--</div>
       <button type="button" class="daily" id="daily" hidden aria-label="今日のお世話"></button>
       <div class="dpanel" id="dpanel" hidden></div>
     </div>
   </div>
-  <details class="gauges" id="gauges" open>
-    <summary><span>Tank Monitor</span><span id="gsum">▾</span></summary>
+  <details class="gauges" id="gauges">
+    <summary><span>水槽の数値</span><span id="gsum">▾</span></summary>
     <div class="g-row"><span>水温</span><div class="bar" id="b-temp"><i></i></div><output id="o-temp">10.0℃</output></div>
     <div class="g-row"><span>水質</span><div class="bar" id="b-water"><i></i></div><output id="o-water">100%</output></div>
     <div class="g-row"><span>空腹</span><div class="bar" id="b-hunger"><i></i></div><output id="o-hunger">20</output></div>
@@ -324,8 +344,14 @@ body.idle .hud-top,body.idle .console,body.idle #alert,body.idle .daily{visibili
     </div>
     <button type="button" id="btn-light"><span class="lampdot" id="lampdot"></span><span id="lamplabel">白色灯</span></button>
     <button type="button" id="btn-water">水換え</button>
-    <button type="button" id="btn-cool">水温 −</button>
-    <button type="button" id="btn-warm">水温 ＋</button>
+    <div class="menu">
+      <button type="button" id="btn-temp" aria-haspopup="true">水温 <span id="tval">10.0℃</span></button>
+      <div class="pop" id="pop-temp" hidden>
+        <button type="button" id="btn-cool">− 下げる</button>
+        <button type="button" id="btn-warm">＋ 上げる</button>
+        <div class="note">好きな水温は 8〜12℃。</div>
+      </div>
+    </div>
     <div class="menu">
       <button type="button" id="btn-more" aria-haspopup="true">その他</button>
       <div class="pop" id="pop-more" hidden>
@@ -377,6 +403,7 @@ body.idle .hud-top,body.idle .console,body.idle #alert,body.idle .daily{visibili
       </div>
       <p>ハチマキがトレードマークの、ちょっとマイペースな深海の住人。お母さんのお腹のポケットから生まれた小さなグソっ君を、話しかけて、ごはんをあげて、大きく育てよう。</p>
       <p class="a2hs" id="a2hs" hidden>iPhone・iPadは、共有ボタンから「ホーム画面に追加」して遊ぶと、育てたデータが消えにくくなります。</p>
+      <p class="t-how">話しかけて、餌をやって、水を守る。<br>深海の生き物を、産まれた瞬間から育てるゲームです。</p>
       <div class="t-go">
         <button class="primary" type="button" id="start" disabled>水槽をのぞく</button>
         <span id="loadmsg">水槽を準備しています…</span>
@@ -436,6 +463,8 @@ body.idle .hud-top,body.idle .console,body.idle #alert,body.idle .daily{visibili
   <div class="zk-tabs" id="rm-tabs"><button type="button" data-t="uranai">占い</button><button type="button" data-t="soudan">相談</button><button type="button" data-t="mukashi">昔話</button><button type="button" data-t="yohou">明日の予報</button></div>
   <div id="rm-body"></div>
 </div></div>
+<div id="hashichip" hidden><span>箸で口元まで運んでください</span><button type="button" id="hashi-drop">上から落とす</button></div>
+<div id="tutchip" hidden><span>はじめての案内 <b id="tut-n"></b></span><button type="button" id="tut-skip">とばす</button></div>
 <div id="itank" hidden><div id="it-clock"></div></div>
 <div class="modal" id="memorial" hidden><div class="sheet"><h3>グソっ君</h3><div id="mem-date"></div><dl id="mem-text"></dl><p id="mem-egg" hidden style="font-size:13.5px;line-height:1.8;color:#ffc46b;margin:0 0 10px">グソっ君は、卵を残していました。</p><p style="font-size:13px;color:var(--dim);line-height:1.8;margin:0 0 18px">この子の記録は「日記 → 思い出」に残ります。</p><button type="button" class="primary" id="mem-new">新しい命を迎える</button></div></div>
 <div id="toast"></div>
@@ -1283,7 +1312,8 @@ function dropFood(kind){
   mesh.traverse(o=>{if(o.isMesh){o.castShadow=true}});
   const r0=.4+2.4*C.size,x=clamp(C.pos.x+(rnd()-.5)*r0+Math.sin(C.yaw)*(1.4*C.size+.35),-6,6),z=clamp(C.pos.z+(rnd()-.5)*r0*.7+Math.cos(C.yaw)*(1.4*C.size+.35),-3.5,3);
   mesh.position.set(x,9.5,z);scene.add(mesh);
-  const f={kind,mesh,vy:0,rest:false,left:1,age:0,x,z,ground:heightAt(x,z)+.06,spin:new V3(rnd()-.5,rnd()-.5,rnd()-.5)};foods.push(f);
+  const f={kind,mesh,vy:0,rest:false,left:1,age:0,x,z,x0:x,z0:z,ground:heightAt(x,z)+.06,spin:new V3(rnd()-.5,rnd()-.5,rnd()-.5)};foods.push(f);
+  if(Hashi.holding){f.held=true;Hashi.f=f}
   Audio2.plop();return f;
 }
 function removeFood(f){scene.remove(f.mesh);foods.splice(foods.indexOf(f),1)}
@@ -1540,8 +1570,8 @@ function updateLights(dt){
    ===================================================================== */
 const CAM={yaw:.18,pitch:.2,dist:3,zoom:1,tYaw:.18,tPitch:.2,focus:new V3(),intro:1};
 let drag=null,pinch=null;
-canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,x0:e.clientX,y0:e.clientY,t:performance.now(),id:e.pointerId};closePops()});
-canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||pinch)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+canvas.addEventListener('pointerdown',e=>{if(Hashi.on)return;canvas.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,x0:e.clientX,y0:e.clientY,t:performance.now(),id:e.pointerId};closePops()});
+canvas.addEventListener('pointermove',e=>{if(Hashi.on)return;if(!drag||drag.id!==e.pointerId||pinch)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
   CAM.tYaw-=dx*.006;CAM.tPitch=clamp(CAM.tPitch+dy*.0045,-.04,1.45)});
 canvas.addEventListener('dblclick',()=>{CAM.tYaw=Math.round(CAM.yaw/TAU)*TAU+.18;CAM.tPitch=.2;CAM.zoom=1;toast('視点をもとに戻しました')});
 canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0);if(moved<6&&performance.now()-drag.t<400)onTap(e);drag=null});
@@ -2642,12 +2672,13 @@ const Game={
     if(this.molting||Life.asleep)p=0;
     f.accepted=Math.random()<p*(S.mood>25?1:.4);
     const st=S.stage;
-    setTimeout(()=>{
+    const react=()=>{
       if(!foods.includes(f))return;
       if(f.accepted)say(st===0?'（小さな触角が、餌のほうへ向いた）':st===1?'……ゴハン、デス。':pickR(['……まあ、いただかないこともありません。','ほう。悪くない匂いです。','腐りかけなら、もっと良かったのですが。']),{emo:'curious',narr:st===0});
       else{say(st===0?(kind==='krill'?'（見向きもしない）':'（まだ大きすぎて食べられないようだ。オキアミなら……）'):st===1?'……イリマセン。':this.molting?(Molt.phase==='soft'?'殻が硬くなるまで、顎に力が入りません。':'脱皮の前は、何も喉を通りません。'):pickR(['今は、結構です。','ワタクシは食べなくても生きていけます。片づけていただけますか。','その匂いは好みません。……腐ったら水が汚れますよ。']),{emo:'annoyed',narr:st===0});
         f.rotAt=Date.now()+60000}
-    },3800);
+    };
+    if(f.held)f.react=react;else setTimeout(react,3800);
   },
   ate(kind){
     S.hunger=clamp(S.hunger-(kind==='krill'?25:45),0,100);S.mood=clamp(S.mood+8,0,100);S.trust=clamp(S.trust+4,0,100);S.fed++;S.fedSinceMolt++;Morph.ate(kind);this.hinted=false;S.lastAteAt=Date.now();S.fastMiles=[];shape(1.5,0);addDark(-3);ev('fed',{aji:'アジ',ika:'スルメイカ',krill:'オキアミ'}[kind]);
@@ -3341,6 +3372,218 @@ $('m-room').addEventListener('click',()=>Room.open());
 $('rm-close').addEventListener('click',()=>$('room').hidden=true);
 document.querySelectorAll('#rm-tabs button').forEach(b=>b.addEventListener('click',()=>Room.tab(b.dataset.t)));
 
+/* =====================================================================
+   CALM SCREEN — one line saying how the creature is and what it needs;
+   the numbers stay folded away unless something is wrong
+   ===================================================================== */
+const MoodLine={auto:false,last:'',
+  text(){
+    if(Life.dead)return['','—'];
+    if(Cine.on)return['',''];
+    if(Life.asleep)return['','眠っています。そっとしておきましょう'];
+    if(Game.molting||Molt.phase)return['','脱皮中です。そっとしておきましょう'];
+    if(Trouble.cur)return['warn','困っています。上の知らせを見てください'];
+    if(S.health<40)return['warn','弱っています。水と水温を整えてあげて'];
+    if(S.water<55)return['warn','水がにごっています（水換えを）'];
+    if(S.temp>12.5)return['warn','水がぬるいようです（水温を下げて）'];
+    if(S.temp<7.5)return['warn','水が冷たすぎるようです（水温を上げて）'];
+    if(S.light==='white'&&S.whiteMin>10)return['warn','まぶしそうです（照明を変えて）'];
+    if(S.stage>=1&&S.hunger>75)return['warn','おなかが空いているようです'];
+    if(darkLv()>=2)return['dark','すねています。やさしくしてあげて'];
+    if(S.mood>70)return['good','ごきげんです'];
+    if(S.mood>40)return['','おだやかです'];
+    return['warn','少しふきげんです'];
+  },
+  danger(){return !!Trouble.cur||S.health<40||S.water<45||S.temp>14||S.temp<6},
+  update(){
+    if(!S)return;const [c,t]=this.text(),el=$('moodline');
+    const key=c+t;if(key!==this.last){this.last=key;el.className='moodline '+c;el.innerHTML=t?'<span>様子</span> '+t:''}
+    // numbers come out by themselves when something is wrong, and fold away again afterwards
+    const g=$('gauges');
+    if(started&&this.danger()){if(!g.open){g.open=true;this.auto=true}}
+    else if(this.auto){g.open=false;this.auto=false}
+    $('tval').textContent=S.temp.toFixed(1)+'℃';
+  }
+};
+setInterval(()=>MoodLine.update(),1000);
+
+/* =====================================================================
+   FIRST VISIT GUIDE — one thing at a time, the button to press glows
+   ===================================================================== */
+const Tutor={i:-1,t:0,
+  STEPS:[
+    {el:'say',done:'talk',text:'（まずは話しかけてみましょう。下の欄に「こんにちは」と書いて「話す」を押してください。マイクのボタンで、声でも話しかけられます）'},
+    {el:'btn-light',done:'light',text:'（次は照明です。「照明」を押すと、赤色灯・消灯・白色灯が切り替わります。グソっ君は暗いほうが落ち着き、白い光はまぶしがります）'},
+    {el:'btn-temp',done:'temp',text:'（水温も大事です。好きな水温は8〜12℃。「水温」から上げ下げできます）'},
+    {el:'moodline',auto:7,text:'（左上の「様子」に、今の気持ちや困っていることが出ます。困ったときは、まずここを見てください）'},
+    {el:'daily',auto:8,text:'（「今日のお世話」を3つ終えると、連続記録がのびます。餌は、もう少し大きくなってから。しばらくは、お腹に残った栄養で育ちます）'}
+  ],
+  begin(){if(S.tut)return;S.tut='on';save();this.go(0)},
+  go(i){
+    if(i>2)closePops();
+    document.querySelectorAll('.tut-glow').forEach(e=>e.classList.remove('tut-glow'));
+    this.i=i;this.t=0;
+    if(i>=this.STEPS.length){this.end(true);return}
+    const st=this.STEPS[i],el=$(st.el);if(el)el.classList.add('tut-glow');
+    $('tutchip').hidden=false;$('tut-n').textContent=(i+1)+' / '+this.STEPS.length;
+    queue.length=0;if(typing){clearTimeout(typing.to);typing=null}say(st.text,{narr:true});
+  },
+  hit(k){if(this.i<0)return;const st=this.STEPS[this.i];if(st&&st.done===k){const n=this.i+1;this.i=-2;setTimeout(()=>this.go(n),k==='talk'?4200:2600)}},
+  end(ok){
+    document.querySelectorAll('.tut-glow').forEach(e=>e.classList.remove('tut-glow'));
+    this.i=-1;S.tut='done';save();$('tutchip').hidden=true;
+    if(ok)say('（案内はここまでです。分からなくなったら「様子」を見てください。ゆっくり見守ってあげましょう）',{narr:true});
+  },
+  update(){
+    if(!S||!started||Cine.on)return;
+    // brand-new players only; anyone who has already talked to their creature skips it
+    if(!S.tut){if(S.talks>0||!S.hatched){if(S.talks>0){S.tut='done';save()}return}this.t+=1;if(this.t>6)this.begin();return}
+    if(this.i<0)return;const st=this.STEPS[this.i];this.t+=1;if(st.auto&&this.t>=st.auto)this.go(this.i+1);
+  }
+};
+setInterval(()=>Tutor.update(),1000);
+$('tut-skip').addEventListener('click',()=>Tutor.end(false));
+{const f=Game.talk;Game.talk=function(){Tutor.hit('talk');return f.apply(this,arguments)}}
+{const f=Game.light;Game.light=function(){const r=f.apply(this,arguments);Tutor.hit('light');return r}}
+$('btn-temp').addEventListener('click',()=>Tutor.hit('temp'));
+
+/* =====================================================================
+   SEASONS — the Japanese calendar, the full moon and the creature's own
+   anniversaries: a greeting once a day, and a small ornament in the tank
+   ===================================================================== */
+const JUGOYA={2026:'09-25',2027:'09-15',2028:'10-03',2029:'09-22',2030:'09-12',2031:'10-01',2032:'09-19',2033:'09-08',2034:'09-27',2035:'09-16'};
+const Season={deco:null,decoK:null,said:false,
+  EV:[
+    {k:'shogatsu',n:'お正月',from:'01-01',to:'01-03',deco:'kagami',say:'あけましておめでとうございます。今年も、深海から見守らせていただきます。'},
+    {k:'setsubun',n:'節分',from:'02-03',to:'02-03',deco:'mame',say:'きょうは節分だそうですね。……ワタクシに豆は投げないでください。殻が硬くても、痛いものは痛いのです。'},
+    {k:'hina',n:'ひな祭り',from:'03-03',to:'03-03',say:'ひな祭りですね。深海にも、お雛さまのように静かに並ぶ貝がおります。'},
+    {k:'hanami',n:'お花見',from:'04-01',to:'04-07',say:'陸では、桜が咲いている頃でしょうか。深海の桜は、マリンスノーでございます。'},
+    {k:'kodomo',n:'こどもの日',from:'05-05',to:'05-05',say:'こどもの日ですね。ワタクシも昔は、脚が六対しかないマンカでした。'},
+    {k:'tanabata',n:'七夕',from:'07-07',to:'07-07',deco:'sasa',say:'きょうは七夕ですね。ワタクシの願いごとは……あなたが、明日も来てくださることです。'},
+    {k:'obon',n:'お盆',from:'08-13',to:'08-16',say:'お盆ですね。ご先祖さまも、深海の底のように静かに見守っていらっしゃるでしょう。'},
+    {k:'halloween',n:'ハロウィン',from:'10-25',to:'10-31',deco:'pumpkin',say:'ハロウィンだそうですね。ワタクシは仮装をしなくても、十分おばけのような見た目だと言われます。'},
+    {k:'xmas',n:'クリスマス',from:'12-24',to:'12-25',deco:'tree',say:'メリークリスマス。サンタさんは、深海までは来てくれないそうです。……あなたが来てくださったので、十分です。'},
+    {k:'omisoka',n:'大晦日',from:'12-31',to:'12-31',say:'今年も一年、ありがとうございました。来年も、どうぞよろしくお願いいたします。'}
+  ],
+  md(d){return String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},
+  fullMoon(d){const p=((d.getTime()-Date.UTC(2000,0,6,18,14))/86400000)%29.530588853;return Math.abs(p-14.765)<.9},
+  today(d){
+    d=d||new Date();const md=this.md(d),out=[];
+    for(const e of this.EV)if(md>=e.from&&md<=e.to)out.push(e);
+    if(JUGOYA[d.getFullYear()]===md)out.push({k:'jugoya',n:'十五夜',deco:'dango',say:'今夜は十五夜です。月の光は深海まで届きませんが、ワタクシは、ちゃんと感じております。'});
+    else if(this.fullMoon(d))out.push({k:'moon',n:'満月',say:'今夜は満月のようです。満月の夜は、なぜか殻がむずむずいたします。',moon:true});
+    if(S&&S.hatched){
+      const days=Math.floor((d.getTime()-S.born)/DAY)+1;
+      if([100,200,300,500,1000].includes(days))out.push({k:'day'+days,n:'飼育'+days+'日',deco:'cake',say:'飼育'+days+'日目です。ここまで育ててくださって、ありがとうございます。……ワタクシからも、お祝いを申し上げます。'});
+      const b=new Date(S.born),years=d.getFullYear()-b.getFullYear();
+      if(years>=1&&this.md(b)===md)out.push({k:'bday',n:'誕生日',deco:'cake',say:'きょうは、ワタクシが生まれた日です。'+years+'年前の今日、あなたに見つけていただきました。'});
+    }
+    return out;
+  },
+  greet(){
+    if(this.said||!started||!S.hatched||Life.asleep||Life.dead||Cine.on||(Tutor.i!==-1)||S.pending)return;
+    const ev=this.today(),D=dkey();S.seasonSaid=S.seasonSaid||{};
+    const e=ev.find(x=>S.seasonSaid[x.k]!==D);if(!e){this.said=true;return}
+    this.said=true;S.seasonSaid[e.k]=D;
+    if(e.moon&&S.molts<9)S.trust=clamp(S.trust+1,0,100);   // a small nudge toward the next molt, once per full moon
+    save();
+    say(S.stage>=2?e.say:'（きょうは'+e.n+'。グソっ君は、まだよく分かっていないようです）',{emo:'happy',narr:S.stage<2});
+  },
+  MODEL:{
+    kagami(){const g=new THREE.Group(),w=wMat(0xf4f1ea),b=new THREE.Mesh(new THREE.SphereGeometry(.2,20,12),w);b.scale.y=.55;b.position.y=.11;const t=new THREE.Mesh(new THREE.SphereGeometry(.15,20,12),w);t.scale.y=.55;t.position.y=.27;
+      const o=new THREE.Mesh(new THREE.SphereGeometry(.07,14,10),wMat(0xf08a24));o.position.y=.38;const base=new THREE.Mesh(new THREE.BoxGeometry(.5,.06,.5),wMat(0xd9b77a));base.position.y=.03;g.add(base,b,t,o);return g},
+    mame(){const g=new THREE.Group(),m=wMat(0xe0c48f),tray=new THREE.Mesh(new THREE.BoxGeometry(.36,.04,.26),wMat(0xb98b52));tray.position.y=.02;g.add(tray);
+      for(let i=0;i<9;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.03,8,6),m);b.position.set((i%3-1)*.08,.06,(Math.floor(i/3)-1)*.06);g.add(b)}return g},
+    sasa(){const g=new THREE.Group(),st=new THREE.Mesh(new THREE.CylinderGeometry(.025,.03,1.5,8),wMat(0x6f9b3c));st.position.y=.75;g.add(st);
+      const lf=wMat(0x4f8a2e,{side:THREE.DoubleSide});for(let i=0;i<7;i++){const l=new THREE.Mesh(new THREE.ConeGeometry(.04,.34,4),lf);l.position.set(Math.sin(i*2.3)*.12,.85+i*.09,Math.cos(i*2.3)*.12);l.rotation.z=(i%2?1:-1)*1.1;l.rotation.y=i;g.add(l)}
+      [0xe2483d,0xf1c232,0x3d7be2,0xe28ad6].forEach((c,i)=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(.06,.2),wMat(c,{side:THREE.DoubleSide}));p.position.set((i-1.5)*.1,.7+i*.12,.08);g.add(p)});return g},
+    dango(){const g=new THREE.Group(),w=wMat(0xf7f5ee),base=new THREE.Mesh(new THREE.CylinderGeometry(.2,.17,.12,16),wMat(0xd9b77a));base.position.y=.06;g.add(base);
+      let y=.17;for(const n of [3,2,1]){for(let a=0;a<n;a++)for(let b=0;b<n;b++){const s=new THREE.Mesh(new THREE.SphereGeometry(.055,12,8),w);s.position.set((a-(n-1)/2)*.11,y,(b-(n-1)/2)*.11);g.add(s)}y+=.09}
+      return g},
+    pumpkin(){const g=new THREE.Group(),p=new THREE.Mesh(new THREE.SphereGeometry(.24,20,14),wMat(0xe27a1f));p.scale.set(1.2,.85,1.2);p.position.y=.2;const st=new THREE.Mesh(new THREE.CylinderGeometry(.025,.035,.12,6),wMat(0x4a6b2a));st.position.y=.44;
+      const eye=wMat(0x2a1606);[-.08,.08].forEach(x=>{const e=new THREE.Mesh(new THREE.ConeGeometry(.04,.06,3),eye);e.position.set(x,.25,.27);e.rotation.x=Math.PI/2;g.add(e)});g.add(p,st);return g},
+    tree(){const g=new THREE.Group(),c=wMat(0x2f7a45);[[.32,.4,.35],[.25,.34,.62],[.17,.28,.86]].forEach(([r,h,y])=>{const k=new THREE.Mesh(new THREE.ConeGeometry(r,h,10),c);k.position.y=y;g.add(k)});
+      const tr=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.2,8),wMat(0x7a4a26));tr.position.y=.1;const star=new THREE.Mesh(new THREE.OctahedronGeometry(.07),new THREE.MeshBasicMaterial({color:new THREE.Color(1.8,1.5,.6)}));star.position.y=1.06;g.add(tr,star);
+      [0xe2483d,0xf1c232,0x7fc8ff].forEach((col,i)=>{const o=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),new THREE.MeshBasicMaterial({color:new THREE.Color(col).multiplyScalar(1.4)}));o.position.set(Math.sin(i*2.1)*.22,.42+i*.16,Math.cos(i*2.1)*.22);g.add(o)});return g},
+    cake(){const g=new THREE.Group(),c=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.18,20),wMat(0xf6efe4));c.position.y=.09;const top=new THREE.Mesh(new THREE.CylinderGeometry(.21,.21,.03,20),wMat(0xe9879a));top.position.y=.19;
+      const cd=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.12,6),wMat(0x7fc8ff));cd.position.y=.27;const fl=new THREE.Mesh(new THREE.SphereGeometry(.022,8,6),new THREE.MeshBasicMaterial({color:new THREE.Color(2,1.4,.5)}));fl.position.y=.35;g.add(c,top,cd,fl);return g}
+  },
+  place(){
+    const k=(this.today().find(e=>e.deco)||{}).deco||null;if(k===this.decoK)return;this.decoK=k;
+    if(this.deco){disposeTree(this.deco);this.deco=null}
+    if(!k||!this.MODEL[k])return;
+    const g=this.MODEL[k]();g.traverse(o=>{if(o.isMesh)o.castShadow=true});const x=1.7,z=-.5;g.position.set(x,heightAt(x,z),z);g.rotation.y=-.5;scene.add(g);this.deco=g;
+  },
+  day:null,
+  tick(){if(!S||!ISO)return;const D=dkey();if(D!==this.day){this.day=D;this.said=false;this.place()}if(started&&!this.said&&Daily.sess>12)this.greet()}
+};
+setInterval(()=>Season.tick(),2000);
+
+/* =====================================================================
+   CHOPSTICKS — carry the food to the creature's mouth with a finger.
+   The camera stays still while you hold them; "落とす" keeps the old way.
+   ===================================================================== */
+const Hashi={on:false,f:null,g:null,drag:false,moved:0,x0:0,y0:0,t0:0,idle:0,pos:new V3(),
+  start(kind){
+    if(!started||Life.dead||this.on)return;
+    if(foods.length>=3){toast('水槽に餌がたまっています。水換えで片づけましょう。');return}
+    this.holding=true;Game.feed(kind);this.holding=false;
+    const f=this.f;if(!f)return;
+    this.on=true;this.drag=false;this.idle=0;
+    {const mo=this.mouth(),tc=camera.position.clone().sub(mo);tc.y=0;tc.normalize();this.pos.copy(mo).addScaledVector(tc,.7+.6*C.size);this.pos.y+=.25+.2*C.size;this.place()}
+    if(!this.g)this.g=this.build();scene.add(this.g);this.aim();
+    $('hashichip').hidden=false;
+  },
+  mouth(){const d=1.25*C.size+.12;const x=C.pos.x+Math.sin(C.yaw)*d,z=C.pos.z+Math.cos(C.yaw)*d;return new V3(x,heightAt(x,z)+(ISO&&ISO.chara?(ISO.focusH||.5)*C.size*(S.molts>=4?1.35:.9):.22*C.size+.08),z)},
+  build(){
+    const g=new THREE.Group(),m=wMat(0xc89a62);
+    for(const s of [-1,1]){const c=new THREE.Mesh(new THREE.CylinderGeometry(.03,.012,1.8,8),m);c.position.set(s*.035,.9,0);c.rotation.z=-s*.02;c.castShadow=true;g.add(c)}
+    return g;
+  },
+  place(){const f=this.f;if(!f)return;f.mesh.position.copy(this.pos);f.x=this.pos.x;f.z=this.pos.z},
+  aim(){if(!this.g)return;camera.updateMatrixWorld();const e=camera.matrixWorld.elements,right=new V3(e[0],e[1],e[2]),up=new V3(e[4],e[5],e[6]),back=new V3(e[8],e[9],e[10]);
+    const to=new V3().addScaledVector(right,.55).addScaledVector(up,.75).addScaledVector(back,.35).normalize();this.g.position.copy(this.pos);this.g.quaternion.setFromUnitVectors(new V3(0,1,0),to)},
+  pick(e){
+    const r=canvas.getBoundingClientRect(),m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(m,camera);
+    const h=this.mouth().y+.05,o=ray.ray.origin,d=ray.ray.direction;if(Math.abs(d.y)<1e-3)return null;
+    const t=(h-o.y)/d.y;if(t<0)return null;const p=o.clone().addScaledVector(d,t);p.x=clamp(p.x,-6,6);p.z=clamp(p.z,-3.5,3);p.y=h;return p;
+  },
+  down(e){if(!this.on)return;this.drag=true;this.moved=0;this.x0=e.clientX;this.y0=e.clientY;this.t0=performance.now();try{canvas.setPointerCapture(e.pointerId)}catch(_){}},
+  move(e){if(!this.on||!this.drag)return;this.moved=Math.max(this.moved,Math.hypot(e.clientX-this.x0,e.clientY-this.y0));const p=this.pick(e);if(p){this.pos.lerp(p,.6);this.place();this.idle=0}},
+  up(e){
+    if(!this.on||!this.drag)return;this.drag=false;
+    if(this.moved<8&&performance.now()-this.t0<350)return;      // a plain tap does nothing; keep holding
+    const mo=this.mouth(),dx=this.pos.x-mo.x,dz=this.pos.z-mo.z;
+    if(Math.hypot(dx,dz)<.35+.45*C.size)this.give();else this.drop(false);
+  },
+  // brought right to the mouth: it tastes with its antennae first
+  give(){
+    const f=this.f,mo=this.mouth();this.end();
+    f.held=false;f.x=mo.x;f.z=mo.z;f.mesh.position.set(mo.x,heightAt(mo.x,mo.z)+.06,mo.z);f.ground=f.mesh.position.y;f.rest=true;f.vy=0;puff(f.mesh.position,6);
+    if(S.stage>=1)say('（触角で、そっと確かめている……）',{narr:true});
+    if(f.react)setTimeout(f.react,1600);
+  },
+  // let go away from the mouth (or pressed 落とす): it sinks like before
+  drop(fromTop){
+    const f=this.f;this.end();if(!f)return;f.held=false;f.vy=0;
+    if(fromTop){f.mesh.position.set(f.x0,9.5,f.z0);f.x=f.x0;f.z=f.z0}
+    f.ground=heightAt(f.mesh.position.x,f.mesh.position.z)+.06;
+    if(f.react)setTimeout(f.react,fromTop?3800:2400);
+  },
+  end(){this.on=false;this.drag=false;if(this.g)scene.remove(this.g);$('hashichip').hidden=true;this.f=null},
+  frame(dt){
+    if(!this.on)return;if(!this.f||!foods.includes(this.f)){this.end();return}
+    this.aim();this.f.mesh.rotation.y+=dt*.4;
+    if(!this.drag){this.idle+=dt;if(this.idle>15)this.drop(true)}
+  }
+};
+canvas.addEventListener('pointerdown',e=>Hashi.down(e));
+canvas.addEventListener('pointermove',e=>Hashi.move(e));
+canvas.addEventListener('pointerup',e=>Hashi.up(e));
+canvas.addEventListener('pointercancel',e=>Hashi.up(e));
+$('hashi-drop').addEventListener('click',()=>{if(Hashi.on)Hashi.drop(true)});
+{const wu=World.update;World.update=function(dt,t){wu.call(this,dt,t);Hashi.frame(dt)}}
+
 let started=false;
 function boot(){
   load();
@@ -3382,6 +3625,7 @@ function loop(now){
   else if(started||S.hatched){if(!(Photo.on&&Photo.paused))updateCreature(dt,time);if(!Dream.on)updateCamera(dt,time)}
   else{camera.position.set(Math.sin(time*.05)*6,2.4,7);camera.lookAt(0,.6,-1)}
   foods.slice().forEach(f=>{
+    if(f.held)return;
     if(!f.rest){f.vy=damp(f.vy,-1.1,1.5,dt);f.mesh.position.y+=f.vy*dt;f.mesh.position.x+=Math.sin(time*2+f.x)*.15*dt;f.mesh.rotation.x+=f.spin.x*dt*2;f.mesh.rotation.z+=f.spin.z*dt*2;
       if(f.mesh.position.y<=f.ground){f.mesh.position.y=f.ground;f.rest=true;f.x=f.mesh.position.x;f.z=f.mesh.position.z;f.mesh.rotation.x*=.1;f.mesh.rotation.z*=.1;puff(f.mesh.position,8)}}
     f.mesh.scale.setScalar(Math.max(.05,f.left));
@@ -3463,7 +3707,7 @@ function start(){
   if(isNight()){Life.asleep=true;Life.sleepT=0;{const a=Daily.awayItems();if(a)Daily.showAway(a,Daily.taskLine())}say('（夜。グソっ君は眠っている。起こさないように、そっと見守ろう）',{narr:true});return}
   const h=Math.round((Date.now()-S.last)/3600000);
   Daily.greet(h);
-  $('say').focus({preventScroll:true});
+  if(!IS_MOBILE)$('say').focus({preventScroll:true});
 }
 
 /* ---- UI wiring */
@@ -3501,20 +3745,20 @@ $('mic').addEventListener('click',()=>Mic.toggle());
 let kbdOff=0;
 function kbdTrack(){const vv=window.visualViewport;if(!vv)return;const kb=Math.max(0,innerHeight-(vv.offsetTop+vv.height));document.documentElement.style.setProperty('--kb',(kb>40?kb:0)+'px')}
 if(window.visualViewport){visualViewport.addEventListener('resize',kbdTrack);visualViewport.addEventListener('scroll',kbdTrack)}
-$('say').addEventListener('focus',()=>{clearTimeout(kbdOff);document.body.classList.add('kbd');closePops();setTimeout(kbdTrack,350)});
+$('say').addEventListener('focus',()=>{clearTimeout(kbdOff);if(IS_MOBILE)document.body.classList.add('kbd');closePops();setTimeout(kbdTrack,350)});
 $('say').addEventListener('blur',()=>{clearTimeout(kbdOff);kbdOff=setTimeout(()=>{if(document.activeElement!==$('say')){document.body.classList.remove('kbd');document.documentElement.style.setProperty('--kb','0px');try{scrollTo(0,0)}catch(e){}}},250)});
 $('say').addEventListener('input',()=>Mic.onInput());
 $('say').addEventListener('compositionstart',()=>{Mic.composing=true;clearTimeout(Mic.timer)});
 $('say').addEventListener('compositionend',()=>{Mic.composing=false;Mic.onInput()});
 $('vhint-close').addEventListener('click',()=>Mic.endDictation());
-const pops=[['btn-feed','pop-feed'],['btn-set','pop-set'],['btn-more','pop-more']];
+const pops=[['btn-feed','pop-feed'],['btn-set','pop-set'],['btn-more','pop-more'],['btn-temp','pop-temp']];
 function closePops(){pops.forEach(([,p])=>$(p).hidden=true);$('reset-confirm').hidden=true}
 function placePop(b,p){const el=$(p);el.style.cssText=el.dataset.css0===undefined?(el.dataset.css0=el.getAttribute('style')||''):el.dataset.css0;
   if(innerWidth<760){const r=$(b).getBoundingClientRect();Object.assign(el.style,{position:'fixed',left:'16px',right:'16px',bottom:(innerHeight-r.top+6)+'px',top:'auto',maxHeight:(r.top-24)+'px',overflowY:'auto'})}
   else{const r=el.getBoundingClientRect();if(r.left<8){el.style.left='0';el.style.right='auto'}else if(r.right>innerWidth-8){el.style.left='auto';el.style.right='0'}}}
 pops.forEach(([b,p])=>$(b).addEventListener('click',e=>{e.stopPropagation();const h=$(p).hidden;closePops();$(p).hidden=!h;if(h)placePop(b,p)}));
 document.addEventListener('click',e=>{if(!e.target.closest('.menu'))closePops()});
-document.querySelectorAll('[data-food]').forEach(b=>b.addEventListener('click',()=>{closePops();if(started&&!Life.dead)Game.feed(b.dataset.food)}));
+document.querySelectorAll('[data-food]').forEach(b=>b.addEventListener('click',()=>{closePops();if(started&&!Life.dead)Hashi.start(b.dataset.food)}));
 $('btn-light').addEventListener('click',()=>started&&!Life.dead&&Game.light());
 $('m-diary').addEventListener('click',()=>{closePops();if(S&&S.hatched)Diary.open()});
 $('m-photo').addEventListener('click',()=>Photo.open());
@@ -3549,7 +3793,7 @@ if(IS_MOBILE)$('gauges').open=false;
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S)save()});
 
 window.gusoku={darkVis,Life,Trouble,Dream,Mate,Diary,Photo,Molt,CAM,C,Game,Cine,get S(){return S},settle:()=>updateLights(10),tint:()=>shellTint()};
-Object.assign(window.gusoku,{World,Col,Zukan,Gen,IdleTank,Morph,Daily,Backup,Uranai,Room,Q:()=>Q,say:(t,o)=>say(t,o),sayNow:(t,o)=>{queue.length=0;if(typing){clearTimeout(typing.to);typing=null}say(t,o)},setState:(a,b)=>setState(a,b),resetT:()=>{lastDraw=-1e9;last=performance.now()},cam:()=>camera,feed:k=>dropFood?dropFood(k):0,ISO:()=>ISO,CAMS:()=>CAM});
+Object.assign(window.gusoku,{World,Col,Zukan,Gen,IdleTank,Morph,Daily,Backup,Uranai,Room,MoodLine,Tutor,Season,Hashi,Q:()=>Q,say:(t,o)=>say(t,o),sayNow:(t,o)=>{queue.length=0;if(typing){clearTimeout(typing.to);typing=null}say(t,o)},setState:(a,b)=>setState(a,b),resetT:()=>{lastDraw=-1e9;last=performance.now()},cam:()=>camera,feed:k=>dropFood?dropFood(k):0,ISO:()=>ISO,CAMS:()=>CAM});
 setTimeout(()=>{try{boot()}catch(e){console.error(e);$('loadmsg').textContent='読み込みに失敗しました：'+e.message}},30);
 })();
 </script>
