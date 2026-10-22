@@ -275,6 +275,24 @@ body.idle .hud-top,body.idle .console,body.idle #alert,body.idle .daily{visibili
 #tutchip button{font-size:11px;padding:3px 10px;border-radius:999px}
 body.kbd #tutchip{display:none}
 
+.d-week{margin:10px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:4px;font-size:12.5px;line-height:1.8;color:#9fe3b0;background:rgba(159,227,176,.06)}
+.d-week[hidden]{display:none}
+
+.sheet.nb{width:min(380px,100%)}
+.nb p{font-size:14px;line-height:1.8;margin:0 0 12px}
+#nb-in{width:100%;box-sizing:border-box;background:rgba(3,14,22,.8);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:10px 12px;font:inherit;font-size:18px;-webkit-user-select:text;user-select:text}
+.nb-row{display:flex;gap:8px;margin-top:12px}
+
+.aw-photo{margin:4px auto 12px;padding:8px 8px 6px;background:#f4efe6;border-radius:3px;width:min(260px,80%);transform:rotate(-2deg);box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.aw-photo[hidden]{display:none}
+.aw-photo img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#000}
+.aw-photo figcaption{color:#3b2f22;font-size:12.5px;text-align:center;padding-top:6px;font-family:var(--f-display)}
+
+#nadehand{position:fixed;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;pointer-events:none;z-index:9;background:radial-gradient(circle,rgba(255,240,220,.55),rgba(255,210,170,.15) 60%,rgba(255,210,170,0) 72%);box-shadow:0 0 18px rgba(255,220,180,.35)}
+#nadehand[hidden]{display:none}
+.nade-heart{position:fixed;z-index:9;pointer-events:none;color:#ff9fb3;font-size:22px;text-shadow:0 0 8px rgba(255,140,170,.7);animation:nadeUp 1.4s ease-out forwards;opacity:0}
+@keyframes nadeUp{0%{opacity:0;transform:translateY(0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translateY(-60px) scale(1.2)}}
+
 @media (max-width:640px){
   .brand h1{font-size:20px}
   .gauges{min-width:0;padding:8px 10px}
@@ -375,6 +393,7 @@ body.kbd #tutchip{display:none}
         <button type="button" id="set-voice">声（グソグソ）：オン</button>
         <button type="button" id="set-tts">日本語読み上げ：オフ</button>
         <button type="button" id="set-ai" hidden>AI会話</button>
+        <button type="button" id="set-name">名前をつける</button>
         <button type="button" id="set-backup">データの引き継ぎ</button>
         <button type="button" id="set-reset">最初からやり直す</button>
         <div class="confirm" id="reset-confirm" hidden>
@@ -427,7 +446,7 @@ body.kbd #tutchip{display:none}
 <div id="photo" hidden><div class="ph-side"><button type="button" id="ph-pause">動きを止める</button></div><button type="button" id="ph-shoot" aria-label="撮影"></button><div class="ph-side"><button type="button" id="ph-close">写真モードを終える</button></div></div>
 <div id="ph-flash"></div>
 <div class="modal" id="ph-prev" hidden><div class="sheet"><header><h3>撮った写真</h3><button type="button" id="ph-x" aria-label="閉じる">✕ 閉じる</button></header><img id="ph-img" alt="撮影した写真"><p id="ph-tip"></p><div class="d-foot ph-btns"><button type="button" class="primary" id="ph-save">写真に保存</button><button type="button" id="ph-file" hidden>ファイルとして保存</button><button type="button" id="ph-again">もう一枚撮る</button><button type="button" id="ph-done">写真モードを終える</button></div></div></div>
-<div class="modal" id="away" hidden><div class="sheet" role="dialog" aria-labelledby="aw-title"><header><h3 id="aw-title">留守中のできごと</h3></header><div class="aw-time" id="aw-time"></div><ul id="aw-list"></ul><div class="aw-next" id="aw-next" hidden></div><button type="button" class="primary" id="aw-ok">水槽をのぞく</button></div></div>
+<div class="modal" id="away" hidden><div class="sheet" role="dialog" aria-labelledby="aw-title"><header><h3 id="aw-title">留守中のできごと</h3></header><div class="aw-time" id="aw-time"></div><figure class="aw-photo" id="aw-photo" hidden><img id="aw-img" alt="留守中の写真"><figcaption id="aw-cap"></figcaption></figure><ul id="aw-list"></ul><div class="aw-next" id="aw-next" hidden></div><button type="button" class="primary" id="aw-ok">水槽をのぞく</button></div></div>
 <div class="modal" id="bk" hidden><div class="sheet" role="dialog" aria-labelledby="bk-title">
   <header><h3 id="bk-title">データの引き継ぎ</h3><button type="button" id="bk-close">閉じる</button></header>
   <p>育てたデータは、この端末のブラウザの中にだけ保存されています。ブラウザのデータ削除や機種変更に備えて、引き継ぎコードを控えておいてください。</p>
@@ -463,10 +482,12 @@ body.kbd #tutchip{display:none}
   <div class="zk-tabs" id="rm-tabs"><button type="button" data-t="uranai">占い</button><button type="button" data-t="soudan">相談</button><button type="button" data-t="mukashi">昔話</button><button type="button" data-t="yohou">明日の予報</button></div>
   <div id="rm-body"></div>
 </div></div>
+<div class="modal" id="namebox" hidden><div class="sheet nb" role="dialog" aria-labelledby="nb-title"><header><h3 id="nb-title">名前をつける</h3></header><p id="nb-msg"></p><input id="nb-in" type="text" maxlength="10" autocomplete="off" placeholder="10文字まで"><div class="nb-row"><button type="button" class="primary" id="nb-ok">決める</button><button type="button" id="nb-later">あとで</button></div></div></div>
+<div id="nadehand" hidden></div>
 <div id="hashichip" hidden><span>箸で口元まで運んでください</span><button type="button" id="hashi-drop">上から落とす</button></div>
 <div id="tutchip" hidden><span>はじめての案内 <b id="tut-n"></b></span><button type="button" id="tut-skip">とばす</button></div>
 <div id="itank" hidden><div id="it-clock"></div></div>
-<div class="modal" id="memorial" hidden><div class="sheet"><h3>グソっ君</h3><div id="mem-date"></div><dl id="mem-text"></dl><p id="mem-egg" hidden style="font-size:13.5px;line-height:1.8;color:#ffc46b;margin:0 0 10px">グソっ君は、卵を残していました。</p><p style="font-size:13px;color:var(--dim);line-height:1.8;margin:0 0 18px">この子の記録は「日記 → 思い出」に残ります。</p><button type="button" class="primary" id="mem-new">新しい命を迎える</button></div></div>
+<div class="modal" id="memorial" hidden><div class="sheet"><h3 id="mem-name">グソっ君</h3><div id="mem-date"></div><dl id="mem-text"></dl><p id="mem-egg" hidden style="font-size:13.5px;line-height:1.8;color:#ffc46b;margin:0 0 10px">グソっ君は、卵を残していました。</p><p style="font-size:13px;color:var(--dim);line-height:1.8;margin:0 0 18px">この子の記録は「日記 → 思い出」に残ります。</p><button type="button" class="primary" id="mem-new">新しい命を迎える</button></div></div>
 <div id="toast"></div>
 <div id="fade"></div>
 <button type="button" id="skip" hidden>スキップ</button>
@@ -1571,7 +1592,7 @@ function updateLights(dt){
 const CAM={yaw:.18,pitch:.2,dist:3,zoom:1,tYaw:.18,tPitch:.2,focus:new V3(),intro:1};
 let drag=null,pinch=null;
 canvas.addEventListener('pointerdown',e=>{if(Hashi.on)return;canvas.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,x0:e.clientX,y0:e.clientY,t:performance.now(),id:e.pointerId};closePops()});
-canvas.addEventListener('pointermove',e=>{if(Hashi.on)return;if(!drag||drag.id!==e.pointerId||pinch)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+canvas.addEventListener('pointermove',e=>{if(Hashi.on||Nade.on)return;if(!drag||drag.id!==e.pointerId||pinch)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
   CAM.tYaw-=dx*.006;CAM.tPitch=clamp(CAM.tPitch+dy*.0045,-.04,1.45)});
 canvas.addEventListener('dblclick',()=>{CAM.tYaw=Math.round(CAM.yaw/TAU)*TAU+.18;CAM.tPitch=.2;CAM.zoom=1;toast('視点をもとに戻しました')});
 canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0);if(moved<6&&performance.now()-drag.t<400)onTap(e);drag=null});
@@ -1730,9 +1751,9 @@ const queue=[];let typing=null;
 function say(text,opt){opt=opt||{};if(!opt.narr)text=yuru(text);queue.push({text,emo:opt.emo||'neutral',narr:!!opt.narr,who:opt.who});if(!typing)nextLine()}
 function nextLine(){
   const q=queue.shift();if(!q){typing=null;return}
-  whoEl.textContent=q.narr?'':(q.who||'グソっ君');emoEl.textContent=q.narr?'':(EMO[q.emo]||'');
+  whoEl.textContent=q.narr?'':(q.who||gname());emoEl.textContent=q.narr?'':(EMO[q.emo]||'');
   lineEl.className='line'+(q.narr?' narr':'');
-  let i=0;const txt=q.text;typing={q};
+  let i=0;const txt=q.narr?nameNarr(q.text):q.text;typing={q};
   if(!q.narr){if(/^(こんにち|おはよ|やあ|ハロー|……キタ|……戻ったか|……早いな|……オハヨ|バイバイ|またね)/.test(txt)){C.wave=2.6;C.waveDur=2.6}const vd=speak(txt,q.emo);C.talk=Math.max(C.talk,vd||1.2+txt.length*.09);C.face=Math.max(C.face,4)}
   const step=()=>{
     i++;lineEl.textContent=txt.slice(0,i);const c=document.createElement('span');c.className='caret';lineEl.appendChild(c);
@@ -2236,7 +2257,7 @@ const Life={asleep:false,sleepT:0,dead:false,weakSaid:0,
     say(S.stage<=1?'……ドナタ、デスカ。':kind==='hag'?'……ヌタウナギですか。深海の同業者です。粘液だけはご勘弁願いたいものです。':'ゲンゲですか。ぬるっとした方ですね。……まあ、場所は空いています。',{emo:'curious',narr:S.stage===0});save()},
   die(cause){
     this.dead=true;Game.molting=true;$('alert').hidden=true;
-    const rec={name:mem('名前')?'（'+mem('名前')+'のグソっ君）':'グソっ君',born:S.born,died:Date.now(),days:dayNo(),molts:S.molts,mm:MMS[S.molts],fast:S.fastBest||0,pers:persLabel(),cause,gen:S.gen||1,morph:S.morph||'std'};
+    const rec={name:gname(),born:S.born,died:Date.now(),days:dayNo(),molts:S.molts,mm:MMS[S.molts],fast:S.fastBest||0,pers:persLabel(),cause,gen:S.gen||1,morph:S.morph||'std'};
     let gr=[];try{gr=JSON.parse(localStorage.getItem(GKEY)||'[]')}catch(e){}gr.push(rec);try{localStorage.setItem(GKEY,JSON.stringify(gr))}catch(e){}
     C.flip=1;S.health=0;save();
     say(cause==='老衰'?'（長い時間を生きたグソっ君は、静かに動かなくなった）':'（グソっ君は、動かなくなった）',{narr:true});
@@ -2272,16 +2293,17 @@ function evText(e){return({fed:`${e.v}を食べた`,molt:`${e.v}回目の脱皮�
   dream:'鯨の夢を見た',woke:'夜中に起こされた',fast:`絶食${e.v}日に達した`,mate:`${e.v}が同居することになった`,mateAte:`${e.v}に餌を取られた`,mateBye:`${e.v}がいなくなった`,slime:'ヌタウナギが粘液を出して水がネバネバになった',hatch:'母の育房から生まれた',sleep:'夜は眠った'})[e.c]||''}
 const Diary={keys:[],page:0,
   ensure(){S.diary=S.diary||{};const today=dkey();Object.keys(S.events||{}).forEach(k=>{if(k<today&&!S.diary[k])S.diary[k]={t:lifeDiaryLocal(k),by:'local'}})},
-  open(){this.ensure();const today=dkey();this.keys=[...new Set(Object.keys(S.diary).concat(today))].sort();this.page=this.keys.length-1;this.tab('diary');$('diary').hidden=false;this.render();save()},
+  open(){this.ensure();const today=dkey();this.keys=[...new Set(Object.keys(S.diary).concat(Object.keys(S.weekly||{}),today))].sort();this.page=this.keys.length-1;this.tab('diary');$('diary').hidden=false;this.render();save()},
   close(){$('diary').hidden=true},
   tab(t){$('d-book').hidden=t!=='diary';$('d-graves').hidden=t!=='graves';$('d-tab-diary').setAttribute('aria-pressed',t==='diary');$('d-tab-graves').setAttribute('aria-pressed',t==='graves');if(t==='graves')this.graves()},
   render(){const k=this.keys[this.page],today=dkey(),d=new Date(k+'T12:00:00');
     $('d-date').textContent=`${d.getMonth()+1}月${d.getDate()}日（${'日月火水木金土'[d.getDay()]}）`+(k===today?'　今日':'');
     const e=S.diary[k];$('d-text').textContent=e?e.t:'（今日はまだ書いていない）';$('d-text').classList.toggle('empty',!e);
-    $('d-by').textContent=e?(e.by==='ai'?'グソっ君が書いた':'グソっ君の記録より'):'';
+    $('d-by').textContent=e?(e.by==='ai'?gname()+'が書いた':gname()+'の記録より'):'';
     $('d-write').hidden=k!==today;$('d-write').textContent=e?'書き直させる':'グソっ君に書かせる';
     $('d-prev').disabled=this.page<=0;$('d-next').disabled=this.page>=this.keys.length-1;
-    $('d-ev').textContent=((S.events&&S.events[k])||[]).map(evText).filter(Boolean).join('／')||'記録なし';},
+    $('d-ev').textContent=((S.events&&S.events[k])||[]).map(evText).filter(Boolean).join('／')||'記録なし';
+    {let w=$('d-week');if(!w){w=document.createElement('p');w.id='d-week';w.className='d-week';$('d-ev').after(w)}const t=S.weekly&&S.weekly[k];w.hidden=!t;w.textContent=t||''}},
   async write(){
     const k=dkey(),b=$('d-write');b.disabled=true;b.textContent='グソっ君が書いています…';
     let t=null;
@@ -2309,7 +2331,7 @@ const Photo={on:false,paused:false,blob:null,url:null,
   shoot(){
     composer.render(0);const src=renderer.domElement,c=document.createElement('canvas');c.width=src.width;c.height=src.height;const g=c.getContext('2d');g.drawImage(src,0,0);
     const port=c.height>c.width,s=Math.max(c.width,c.height*.75)/1280,h=(port?96:74)*s;const grd=g.createLinearGradient(0,c.height-h*1.6,0,c.height);grd.addColorStop(0,'rgba(0,0,0,0)');grd.addColorStop(1,'rgba(0,0,0,.55)');g.fillStyle=grd;g.fillRect(0,c.height-h*1.6,c.width,h*1.6);
-    g.fillStyle='#e9f1f4';g.font=`800 ${30*s}px "Shippori Mincho B1",serif`;g.fillText('グソっ君',28*s,c.height-(port?62:28)*s);
+    g.fillStyle='#e9f1f4';g.font=`800 ${30*s}px "Shippori Mincho B1",serif`;g.fillText(gname(),28*s,c.height-(port?62:28)*s);
     g.font=`${(port?13:15)*s}px "IBM Plex Mono",monospace`;g.fillStyle='#b9cbd3';
     g.fillText(`${STAGES[S.stage]}  ${MMS[S.molts]}mm  ${S.molts+1}齢  絶食${fastDays()}日  性格:${persLabel()}  ${dkey().replace(/-/g,'.')}`,(port?28:150)*s,c.height-(port?26:32)*s);
     const f=$('ph-flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');Audio2.noise(.06,4000,.25,1);
@@ -2341,7 +2363,7 @@ const Photo={on:false,paused:false,blob:null,url:null,
     }catch(e){if(e&&e.code==='declined')return;toast('保存できませんでした。写真を長押しして保存してください')}
   }
 };
-function showMemorial(rec){$('mem-text').innerHTML='';
+function showMemorial(rec){$('mem-text').innerHTML='';$('mem-name').textContent=rec.name||DEFNAME;
   [['飼育',rec.days+'日'],['齢',(rec.molts+1)+'齢・'+rec.mm+'mm'],['最長絶食',rec.fast+'日'],['性格',rec.pers],['死因',rec.cause]].forEach(([a,b])=>{const dt=document.createElement('dt');dt.textContent=a;const dd=document.createElement('dd');dd.textContent=b;$('mem-text').append(dt,dd)});
   $('mem-date').textContent=dkey(rec.born).replace(/-/g,'.')+' ― '+dkey(rec.died).replace(/-/g,'.');Gen.memo(rec);$('memorial').hidden=false}
 
@@ -2787,7 +2809,7 @@ const Daily={pre0:null,sess:0,teased:false,inited:false,afterAway:null,
     const h=a.h,fmt=h>=24?Math.floor(h/24)+'日と'+Math.round(h%24)+'時間':h>=1?Math.floor(h)+'時間'+Math.round(h%1*60)+'分':Math.round(h*60)+'分';
     $('aw-time').textContent='留守にしていた時間　'+fmt;const ul=$('aw-list');ul.innerHTML='';
     a.items.forEach(t=>{const li=document.createElement('li');li.textContent=this.Y(t);ul.appendChild(li)});
-    $('aw-next').hidden=!next;if(next)$('aw-next').textContent=next;$('away').hidden=false;
+    $('aw-next').hidden=!next;if(next)$('aw-next').textContent=next;$('away').hidden=false;Souvenir.show();
   },
   closeAway(){$('away').hidden=true;const f=this.afterAway;this.afterAway=null;if(f)setTimeout(f,300)},
   taskLine(){this.ensure();return '今日のお世話：'+S.daily.list.map(x=>this.TASKS[x.k].label).join('・')},
@@ -3093,9 +3115,9 @@ const World={acc:0,vis:null,deco:null,lastM:undefined,
     if(!$('zukan').hidden)Zukan.render();
   },
   awayFinds(h){
-    const res=[];
-    if(S.stage>=1&&h>=3&&Math.random()<.6){const T=Col.pick();Col.addItem(T.k);res.push('砂の中から、'+T.n+'を掘り出していたようです。（図鑑に入りました）')}
-    if(h>=2&&Math.random()<.5){const V=this.chooseVisitor();if(V){Col.c.vis[V.k]=(Col.c.vis[V.k]||0)+1;const G=TREASURES.find(t=>t.gift===V.k),gift=G&&Math.random()<.6;if(gift)Col.addItem(G.k);save();res.push(V.n+'が訪れていたようです。'+(gift?'（'+G.n+'を残していきました）':''))}}
+    const res=[];this.lastFinds=[];
+    if(S.stage>=1&&h>=3&&Math.random()<.6){const T=Col.pick();Col.addItem(T.k);this.lastFinds.push({t:'item',k:T.k});res.push('砂の中から、'+T.n+'を掘り出していたようです。（図鑑に入りました）')}
+    if(h>=2&&Math.random()<.5){const V=this.chooseVisitor();if(V){this.lastFinds.push({t:'vis',k:V.k});Col.c.vis[V.k]=(Col.c.vis[V.k]||0)+1;const G=TREASURES.find(t=>t.gift===V.k),gift=G&&Math.random()<.6;if(gift)Col.addItem(G.k);save();res.push(V.n+'が訪れていたようです。'+(gift?'（'+G.n+'を残していきました）':''))}}
     return res;
   },
   /* the treasure chosen for display sits on the sand at the front left */
@@ -3155,7 +3177,7 @@ const Gen={
     const P=S,eggs=(P.molts||0)>=4;
     const facts=(P.memory||[]).filter(x=>!x.startsWith('単語：')&&!/^脱皮/.test(x)),words=eggs?(P.memory||[]).filter(x=>x.startsWith('単語：')).slice(-8):[];
     const o={gen:(P.gen||1)+1,col:P.col,memory:facts.concat(words),asked:(P.asked||[]).filter(k=>!String(k).startsWith('単語')),daily:P.daily,lastBackup:P.lastBackup,
-      parent:{eggs,morph:P.morph||'std',kind:Math.round(70+((P.kind||70)-70)*.5),bold:Math.round(62+((P.bold||62)-62)*.5)}};
+      parent:{eggs,name:gname(),morph:P.morph||'std',kind:Math.round(70+((P.kind||70)-70)*.5),bold:Math.round(62+((P.bold||62)-62)*.5)}};
     if(eggs)o.morph=P.morph||'std';
     try{localStorage.setItem(SKEY,JSON.stringify(o))}catch(e){}
     noSave=true;location.reload();
@@ -3165,6 +3187,7 @@ const Gen={
     if(p.eggs){S.kind=p.kind;S.bold=p.bold}
     save();
     setTimeout(()=>say(p.eggs?'（先代のグソっ君が残した卵から生まれた、第'+S.gen+'世代です。どこか先代の面影があります）':'（第'+S.gen+'世代のグソっ君です）',{narr:true}),2500);
+    setTimeout(()=>{if(!S.gname)Name.open((p.name&&p.name!==DEFNAME?'先代は「'+p.name+'」でした。':'')+'第'+S.gen+'世代の名前をつけてあげてください。')},9000);
   }
 };
 
@@ -3195,9 +3218,9 @@ const Zukan={tabK:'items',
     }else{
       let gr=[];try{gr=JSON.parse(localStorage.getItem(GKEY)||'[]')}catch(e){}
       sum('グソっ君の家系　'+(gr.length+1)+'代');
-      const row=(g,days,molts,mm,morph,pers,end)=>this.card('<b>第'+g+'世代</b><span>飼育'+days+'日・'+(molts+1)+'齢・'+mm+'mm<br>姿：'+((MORPHS[morph]||MORPHS.std).n)+'　性格：'+this.esc(pers)+'<br>'+end+'</span>');
-      gr.forEach((r,i)=>grid.appendChild(row(r.gen||i+1,r.days,r.molts,r.mm,r.morph,r.pers,'死因：'+this.esc(r.cause))));
-      grid.appendChild(row(S.gen||1,S.hatched?dayNo():0,S.molts||0,MMS[S.molts||0],S.morph,persLabel(),'<span class="r">いまの子</span>'));
+      const row=(g,days,molts,mm,morph,pers,end)=>this.card('<b>第'+g+'</b><span>飼育'+days+'日・'+(molts+1)+'齢・'+mm+'mm<br>姿：'+((MORPHS[morph]||MORPHS.std).n)+'　性格：'+this.esc(pers)+'<br>'+end+'</span>');
+      gr.forEach((r,i)=>grid.appendChild(row((r.gen||i+1)+'世代　'+this.esc(r.name||DEFNAME)+'　',r.days,r.molts,r.mm,r.morph,r.pers,'死因：'+this.esc(r.cause))));
+      grid.appendChild(row((S.gen||1)+'世代　'+this.esc(gname())+'　',S.hatched?dayNo():0,S.molts||0,MMS[S.molts||0],S.morph,persLabel(),'<span class="r">いまの子</span>'));
     }
     B.appendChild(grid);
   }
@@ -3376,6 +3399,64 @@ document.querySelectorAll('#rm-tabs button').forEach(b=>b.addEventListener('clic
    CALM SCREEN — one line saying how the creature is and what it needs;
    the numbers stay folded away unless something is wrong
    ===================================================================== */
+/* =====================================================================
+   NAME — the player names their own creature; shown in the name tag,
+   narration, diary, photos, the grave and the family line
+   ===================================================================== */
+const DEFNAME='グソっ君';
+function gname(){return (S&&S.gname)||DEFNAME}
+const NAME_RE=new RegExp('(?<!オオ)'+DEFNAME+'(?!ムシ)','g');
+function nameNarr(t){return S&&S.gname?t.replace(NAME_RE,S.gname):t}
+const Name={cb:null,
+  open(msg,cb){this.cb=cb||null;closePops();$('nb-msg').textContent=msg||'名前をつけてあげてください。';$('nb-in').value=S.gname||'';$('namebox').hidden=false;setTimeout(()=>{try{$('nb-in').focus({preventScroll:true})}catch(e){}},200)},
+  close(wait){$('namebox').hidden=true;const f=this.cb;this.cb=null;if(f)setTimeout(f,wait||400)},
+  set(){
+    const v=$('nb-in').value.replace(/[\s　]+/g,'').slice(0,10);if(!v){$('nb-in').focus();return}
+    const first=!S.gname;S.gname=v;save();this.apply();this.close(5200);
+    const st=S.stage;
+    setTimeout(()=>say(st===0?'（'+v+'。小さな体が、少しだけ動いた）':st===1?'……'+v+'。……ナマエ、ウレシイ、デス。':first?'……'+v+'、ですか。ありがとうございます。大事にいたします。':'……'+v+'。新しい名前も、悪くありません。',{emo:'happy',narr:st===0}),600);
+  },
+  apply(){const n=gname();const h=document.querySelector('.brand h1');if(h)h.textContent=n;const t=document.querySelector('.t-name');if(t&&S.hatched)t.textContent=n;$('set-name').textContent='名前をつける（いま：'+n+'）'}
+};
+$('nb-ok').addEventListener('click',()=>Name.set());
+$('nb-later').addEventListener('click',()=>Name.close());
+$('nb-in').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();Name.set()}});
+$('set-name').addEventListener('click',()=>Name.open('名前を変えられます。',null));
+// players from before names existed get one gentle hint
+setInterval(()=>{if(!S||!started||S.gname||S.nameHint||S.tut!=='done'||Life.asleep||Daily.sess<40)return;S.nameHint=1;save();say('（設定から、'+DEFNAME+'に名前をつけられるようになりました）',{narr:true})},5000);
+
+/* =====================================================================
+   SOUVENIR PHOTO — when you come back, one small picture of what happened
+   while you were away (a visitor or a find, next to the creature)
+   ===================================================================== */
+const Souvenir={
+  make(){
+    try{
+      if(!ISO||!S.hatched)return null;
+      const F=World.lastFinds||[],v=F.find(x=>x.t==='vis'),it=F.find(x=>x.t==='item');
+      camera.updateMatrixWorld();const e=camera.matrixWorld.elements,right=new V3(e[0],0,e[2]).normalize();
+      const toCam=camera.position.clone().sub(C.pos);toCam.y=0;toCam.normalize();
+      const base=C.pos.clone().addScaledVector(toCam,.45+.35*C.size).addScaledVector(right,.5+.35*C.size);base.y=heightAt(base.x,base.z);
+      let obj=null,cap='留守中の'+gname();
+      const small=v&&(v.k==='oarfish'||v.k==='squid');
+      if(v&&!small){const m=VMODEL[v.k]();m.upd(m.dur*.5,0);obj=m.g;obj.position.set(base.x,base.y+(v.k==='angler'?.45:v.k==='hotaru'?.8:.65),base.z);obj.rotation.y=Math.atan2(toCam.x,toCam.z)+(v.k==='angler'?-1.2:0)}
+      else{const k=it?it.k:small?(TREASURES.find(t=>t.gift===v.k)||{}).k:null;if(k&&World.DECO[k]){obj=new THREE.Group();const m=World.DECO[k]();m.scale.setScalar(1.8);obj.add(m);obj.position.set(base.x,base.y+.1,base.z)}}
+      if(v)cap=VISITORS.find(x=>x.k===v.k).n+'が、来ていました';else if(it)cap=Col.T(it.k).n+'を、見つけていました';
+      if(obj)scene.add(obj);
+      composer.render(0);
+      const src=renderer.domElement,W=src.width,H=src.height,p=C.pos.clone();p.y+=.3*C.size;if(obj){p.lerp(obj.position,.45)}p.project(camera);
+      const cw=Math.min(W,H*1.33)*.46,chh=cw*.75,cx=clamp((p.x+1)/2*W-cw/2,0,W-cw),cy=clamp((1-p.y)/2*H-chh/2,0,H-chh);
+      const c=document.createElement('canvas');c.width=480;c.height=360;c.getContext('2d').drawImage(src,cx,cy,cw,chh,0,0,480,360);
+      if(obj)disposeTree(obj);
+      return {url:c.toDataURL('image/jpeg',.85),cap};
+    }catch(err){return null}
+  },
+  show(){
+    const r=this.make(),f=$('aw-photo');if(!r){f.hidden=true;return}
+    $('aw-img').src=r.url;$('aw-cap').textContent=r.cap;f.hidden=false;
+  }
+};
+
 const MoodLine={auto:false,last:'',
   text(){
     if(Life.dead)return['','—'];
@@ -3418,7 +3499,7 @@ const Tutor={i:-1,t:0,
     {el:'moodline',auto:7,text:'（左上の「様子」に、今の気持ちや困っていることが出ます。困ったときは、まずここを見てください）'},
     {el:'daily',auto:8,text:'（「今日のお世話」を3つ終えると、連続記録がのびます。餌は、もう少し大きくなってから。しばらくは、お腹に残った栄養で育ちます）'}
   ],
-  begin(){if(S.tut)return;S.tut='on';save();this.go(0)},
+  begin(){if(S.tut)return;S.tut='on';save();if(S.gname)this.go(0);else Name.open('この子に名前をつけてあげてください。あとから「設定」でも変えられます。',()=>this.go(0))},
   go(i){
     if(i>2)closePops();
     document.querySelectorAll('.tut-glow').forEach(e=>e.classList.remove('tut-glow'));
@@ -3584,6 +3665,94 @@ canvas.addEventListener('pointercancel',e=>Hashi.up(e));
 $('hashi-drop').addEventListener('click',()=>{if(Hashi.on)Hashi.drop(true)});
 {const wu=World.update;World.update=function(dt,t){wu.call(this,dt,t);Hashi.frame(dt)}}
 
+/* =====================================================================
+   GROWTH RECORD — one line a day kept quietly; once a week a summary in the diary
+   ===================================================================== */
+const Rec={
+  snap(){
+    if(!S||!S.hatched)return;const D=dkey();S.rec=S.rec||[];let r=S.rec[S.rec.length-1];
+    if(!r||r.d!==D){r={d:D};S.rec.push(r);if(S.rec.length>400)S.rec.shift()}
+    Object.assign(r,{mm:MMS[S.molts],molts:S.molts,fast:fastDays(),trust:Math.round(S.trust),mood:Math.round(S.mood),talks:S.talks||0,fed:S.fed||0});
+  },
+  week(){
+    const R=S.rec||[];if(R.length<2)return;const D=dkey();S.weekly=S.weekly||{};
+    if(!S.weekFrom)S.weekFrom=R[0].d;
+    if((new Date(D)-new Date(S.weekFrom))/DAY<7)return;
+    const a=R.find(r=>r.d>=S.weekFrom)||R[0],b=R[R.length-1],span=R.filter(r=>r.d>=a.d);
+    const dm=Math.max(0,b.molts-a.molts),dt=b.trust-a.trust,talk=Math.max(0,b.talks-a.talks),fed=Math.max(0,b.fed-a.fed),fast=Math.max(...span.map(r=>r.fast||0));
+    const line='今週の成長：体長 '+a.mm+'mm → '+b.mm+'mm'+(dm>0?'（脱皮'+dm+'回）':'')+'・話しかけた回数 '+talk+'回・食べた回数 '+fed+'回・なかよし度 '+(dt>=0?'+':'')+dt+'・いちばん長い絶食 '+fast+'日';
+    S.weekly[D]=line;S.weekFrom=D;save();
+    if(started)setTimeout(()=>say('（今週の成長を、日記に書いておきました）',{narr:true}),9000);
+  },
+  tick(){if(!S||!S.hatched)return;this.snap();this.week();save()}
+};
+setInterval(()=>Rec.tick(),60000);
+
+/* =====================================================================
+   STROKING — press and hold the creature, then stroke it.
+   The camera stays still while your hand is on it.
+   ===================================================================== */
+const Nade={on:false,press:null,acc:{back:0,head:0,belly:0},fast:0,lastSay:0,lastX:0,lastY:0,lastT:0,
+  hitAt(x,y){
+    const r=canvas.getBoundingClientRect(),m=new THREE.Vector2((x-r.left)/r.width*2-1,-((y-r.top)/r.height)*2+1);ray.setFromCamera(m,camera);
+    return ray.intersectObject(ISO.root,true).find(h=>h.object.userData.isopod)||null;
+  },
+  region(h){
+    const p=h.point,g=heightAt(C.pos.x,C.pos.z);
+    if(ISO.chara&&S.molts>=4)return (p.y-g)/C.size>1.2?'head':'belly';
+    const rel=p.clone().sub(C.pos),along=(rel.x*Math.sin(C.yaw)+rel.z*Math.cos(C.yaw))/C.size;
+    return along>.95?'head':'back';
+  },
+  down(e){
+    if(!started||Life.dead||Hashi.on||Photo.on||Cine.on||this.on)return;
+    const p={x:e.clientX,y:e.clientY,id:e.pointerId,moved:false};this.press=p;
+    p.timer=setTimeout(()=>{if(this.press!==p||p.moved)return;if(this.hitAt(p.x,p.y))this.start(p)},450);
+  },
+  start(p){
+    this.on=true;drag=null;this.acc={back:0,head:0,belly:0};
+    if(['walk','approach','idle'].includes(C.state))setState('idle',{wait:12});   // stays put while being strokedthis.fast=0;this.lastX=p.x;this.lastY=p.y;this.lastT=performance.now();
+    const h=$('nadehand');h.hidden=false;this.hand(p.x,p.y);
+    if(Life.asleep){toast('眠っているので、起こさないようにそっと');}
+  },
+  hand(x,y){const h=$('nadehand');h.style.left=x+'px';h.style.top=y+'px'},
+  move(e){
+    const p=this.press;if(p&&!this.on&&Math.hypot(e.clientX-p.x,e.clientY-p.y)>10)p.moved=true;
+    if(!this.on)return;
+    const now=performance.now(),d=Math.hypot(e.clientX-this.lastX,e.clientY-this.lastY),dt=Math.max(1,now-this.lastT);
+    this.lastX=e.clientX;this.lastY=e.clientY;this.lastT=now;this.hand(e.clientX,e.clientY);
+    const hit=this.hitAt(e.clientX,e.clientY);if(!hit)return;
+    const rg=this.region(hit);this.acc[rg]+=d;if(d/dt>1.8)this.fast+=d;
+    if(now-this.lastSay<3200)return;
+    if(this.fast>500){this.react('fast');return}
+    if(this.acc.head>260){this.react('head');return}
+    if(this.acc.back>380||this.acc.belly>380)this.react(this.acc.belly>this.acc.back?'belly':'back');
+  },
+  up(){const p=this.press;if(p)clearTimeout(p.timer);this.press=null;if(this.on){this.on=false;$('nadehand').hidden=true}},
+  react(kind){
+    this.lastSay=performance.now();this.acc={back:0,head:0,belly:0};this.fast=0;
+    const st=S.stage,dk=darkLv()>=2,D=dkey();if(!S.nade||S.nade.d!==D)S.nade={d:D,n:0};
+    if(kind==='head'){C.startle=Math.max(C.startle,.6);S.mood=clamp(S.mood-2,0,100);
+      say(st===0?'（触角をすぼめて、少しいやがった）':st===1?'……カオ、ヤ、デス。':pickR(['……顔は、少し苦手です。','触角は、さわらないでいただけますか。']),{emo:'annoyed',narr:st===0});return}
+    if(kind==='fast'){say(st===0?'（びっくりして、体を丸めかけた）':st===1?'……クスグッタイ、デス。':pickR(['……くすぐったいです。','そんなに急がなくても、逃げません。']),{emo:'curious',narr:st===0});return}
+    // a gentle stroke: a little happier, and (a few times a day) a little closer to you
+    S.mood=clamp(S.mood+3,0,100);if(S.nade.n<6){S.nade.n++;S.trust=clamp(S.trust+1,0,100)}addDark(-1);save();
+    Daily.hit('nade');this.hearts();C.face=Math.max(C.face,4);if(st>=1&&ISO.chara){C.wave=1.6;C.waveDur=1.6}
+    Audio2.tone(392,523,.35,'sine',.04);
+    if(Life.asleep)return;
+    say(st===0?'（小さな体が、気持ちよさそうに丸くなった）':st===1?'……キモチイイ、デス。':dk?'……今さら、何ですか。……まあ、続けてもかまいません。':
+      kind==='belly'?pickR(['……おなかは、少しくすぐったいです。でも、悪くありません。','……そこは、ちょうどよいです。']):
+      pickR(['……そこです。そこが、ちょうどよいです。','背中の殻をなでられるのは、悪くありません。','……もう少しだけ、お願いします。']),{emo:'happy',narr:st===0});
+  },
+  hearts(){for(let i=0;i<3;i++){const s=document.createElement('span');s.className='nade-heart';s.textContent='♡';s.style.left=(this.lastX+(i-1)*18)+'px';s.style.top=(this.lastY-20)+'px';s.style.animationDelay=(i*.12)+'s';document.body.appendChild(s);setTimeout(()=>s.remove(),1600)}}
+};
+canvas.addEventListener('pointerdown',e=>Nade.down(e));
+canvas.addEventListener('pointermove',e=>Nade.move(e));
+canvas.addEventListener('pointerup',()=>Nade.up());
+canvas.addEventListener('pointercancel',()=>Nade.up());
+Daily.TASKS.nade={label:DEFNAME+'をなでる',goal:1};
+// tell people it exists, once
+setInterval(()=>{if(!S||!started||S.nadeHint||S.tut!=='done'||Life.asleep||Daily.sess<90||Tutor.i!==-1)return;S.nadeHint=1;save();say('（'+gname()+'を長押しすると、なでられます）',{narr:true})},5000);
+
 let started=false;
 function boot(){
   load();
@@ -3594,7 +3763,7 @@ function boot(){
   ISO=buildIsopod();buildSlime();
   if(S.molts===undefined)S.molts=[0,1,4,7][S.stage]||0;S.stage=stageOf(S.molts);
   C.pos.set(.4,0,.2);C.size=C.sizeT=sizeOf(S.molts);C.crawl=S.molts<4?1:0;shellTint();
-  applyQuality();darkVis();World.placeDeco();
+  applyQuality();darkVis();World.placeDeco();Name.apply();
   syncLampUI();
   voiceOn=(()=>{try{return localStorage.getItem('gusoku.voice')!=='off'}catch(e){return true}})();$('set-voice').textContent='声（グソグソ）：'+(voiceOn?'オン':'オフ');
   ttsOn=(()=>{try{return localStorage.getItem('gusoku.tts')==='on'}catch(e){return false}})();$('set-tts').textContent='日本語読み上げ：'+(ttsOn?'オン':'オフ');
@@ -3793,7 +3962,7 @@ if(IS_MOBILE)$('gauges').open=false;
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S)save()});
 
 window.gusoku={darkVis,Life,Trouble,Dream,Mate,Diary,Photo,Molt,CAM,C,Game,Cine,get S(){return S},settle:()=>updateLights(10),tint:()=>shellTint()};
-Object.assign(window.gusoku,{World,Col,Zukan,Gen,IdleTank,Morph,Daily,Backup,Uranai,Room,MoodLine,Tutor,Season,Hashi,Q:()=>Q,say:(t,o)=>say(t,o),sayNow:(t,o)=>{queue.length=0;if(typing){clearTimeout(typing.to);typing=null}say(t,o)},setState:(a,b)=>setState(a,b),resetT:()=>{lastDraw=-1e9;last=performance.now()},cam:()=>camera,feed:k=>dropFood?dropFood(k):0,ISO:()=>ISO,CAMS:()=>CAM});
+Object.assign(window.gusoku,{World,Col,Zukan,Gen,IdleTank,Morph,Daily,Backup,Uranai,Room,MoodLine,Tutor,Season,Hashi,Rec,Name,Souvenir,Nade,Q:()=>Q,say:(t,o)=>say(t,o),sayNow:(t,o)=>{queue.length=0;if(typing){clearTimeout(typing.to);typing=null}say(t,o)},setState:(a,b)=>setState(a,b),resetT:()=>{lastDraw=-1e9;last=performance.now()},cam:()=>camera,feed:k=>dropFood?dropFood(k):0,ISO:()=>ISO,CAMS:()=>CAM});
 setTimeout(()=>{try{boot()}catch(e){console.error(e);$('loadmsg').textContent='読み込みに失敗しました：'+e.message}},30);
 })();
 </script>
